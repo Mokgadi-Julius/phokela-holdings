@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { servicesAPI } from '../../services/api';
+import { getImageUrls } from '../../utils/imageHelpers';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -218,7 +219,7 @@ const Services = () => {
 
     // Convert backend image URLs to full URLs for preview
     const gallery = service.images?.gallery || [];
-    const imageUrls = gallery.map(img => `http://localhost:5000${img}`);
+    const imageUrls = getImageUrls(gallery);
     setImagePreview(imageUrls);
     setUploadedImageUrls(gallery);
     setShowModal(true);

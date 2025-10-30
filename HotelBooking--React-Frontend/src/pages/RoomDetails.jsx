@@ -4,6 +4,7 @@ import { guestHouseRules } from '../constants/data';
 import { useParams } from 'react-router-dom';
 import { FaCheck } from 'react-icons/fa';
 import { useState } from 'react';
+import { getImageUrl } from '../utils/imageHelpers';
 
 
 const RoomDetails = () => {
@@ -110,7 +111,7 @@ const RoomDetails = () => {
                       }`}
                     >
                       <img
-                        src={`http://localhost:5000${img}`}
+                        src={getImageUrl(img)}
                         alt={`${name} - Image ${index + 1}`}
                         className='w-full h-full object-cover'
                       />

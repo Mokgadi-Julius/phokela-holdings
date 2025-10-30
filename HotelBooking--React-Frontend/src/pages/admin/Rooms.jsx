@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { roomsAPI } from '../../services/api';
+import { getImageUrl, getImageUrls, getMainImageUrl } from '../../utils/imageHelpers';
 
 const Rooms = () => {
   const [rooms, setRooms] = useState([]);
@@ -187,7 +188,7 @@ const Rooms = () => {
       images: room.images || [],
     });
     // Convert backend image URLs to full URLs for preview
-    const imageUrls = (room.images || []).map(img => `http://localhost:5000${img}`);
+    const imageUrls = getImageUrls(room.images || []);
     setImagePreview(imageUrls);
     setUploadedImageUrls(room.images || []);
     setShowModal(true);
@@ -303,7 +304,7 @@ const Rooms = () => {
                 {room.mainImage || (room.images && room.images.length > 0) ? (
                   <>
                     <img
-                      src={`http://localhost:5000${room.mainImage || room.images[0]}`}
+                      src={getMainImageUrl(room.mainImage, room.images)}
                       alt={room.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
