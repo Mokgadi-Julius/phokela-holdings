@@ -1,0 +1,24 @@
+# Backend Dockerfile at root for Railway
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy backend files
+COPY HotelBooking--Backend/package*.json ./
+RUN npm ci --only=production
+
+COPY HotelBooking--Backend/ ./
+
+# Create uploads directory
+RUN mkdir -p src/uploads
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start application
+CMD ["npm", "start"]
