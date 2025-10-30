@@ -37,7 +37,10 @@
       "Bash(cmdkey /delete:git:https://github.com:*)",
       "Bash(git init:*)",
       "Bash(test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh:*)",
+      "Bash(railway:*)"
     ],
     "deny": [],
     "ask": []

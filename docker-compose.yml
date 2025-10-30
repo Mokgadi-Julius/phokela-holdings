@@ -18,7 +18,56 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - phokela-network
+
+  backend:
+    build:
+      context: ./HotelBooking--Backend
+      dockerfile: Dockerfile
+    container_name: phokela_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: phokela_guest_house
+      DB_USER: phokela_user
+      DB_PASSWORD: phokela_pass_2025
+      JWT_SECRET: phokela-super-secret-jwt-key-2025
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - phokela-network
+    volumes:
+      - backend_uploads:/app/src/uploads
+
+  frontend:
+    build:
+      context: ./HotelBooking--React-Frontend
+      dockerfile: Dockerfile
+    container_name: phokela_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - phokela-network
+
+networks:
+  phokela-network:
+    driver: bridge
 
 volumes:
   mysql_data:
+    driver: local
+  backend_uploads:
     driver: local
