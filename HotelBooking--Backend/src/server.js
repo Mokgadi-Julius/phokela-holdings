@@ -22,14 +22,15 @@ const uploadRoutes = require('./routes/uploads');
 
 const app = express();
 
+// Trust proxy - Required for Railway and other proxy services
+app.set('trust proxy', true);
+
 // Connect to MySQL Database
 connectDB();
 
 // CORS configuration - MUST BE BEFORE OTHER MIDDLEWARE
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-production-domain.com']
-    : true, // Allow all origins in development
+  origin: process.env.CORS_ORIGIN || '*', // Use environment variable or allow all
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
