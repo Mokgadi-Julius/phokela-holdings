@@ -1,16 +1,13 @@
 import { BsArrowsFullscreen, BsPeople } from 'react-icons/bs';
 import { Link } from 'react-router-dom';
+import { getMainImageUrl } from '../utils/imageHelpers';
 
 const Room = ({ room }) => {
 
   const { id, name, mainImage, images, size, capacity, maxPerson, description, price } = room ?? {};
 
   // Prioritize mainImage, then first image from array, or use placeholder
-  const imageUrl = mainImage
-    ? `http://localhost:5000${mainImage}`
-    : (images && images.length > 0)
-    ? `http://localhost:5000${images[0]}`
-    : 'https://via.placeholder.com/400x300?text=No+Image';
+  const imageUrl = getMainImageUrl(mainImage, images) || 'https://via.placeholder.com/400x300?text=No+Image';
 
   // Use capacity if available, fallback to maxPerson for backward compatibility
   const guestCapacity = capacity || maxPerson || 1;

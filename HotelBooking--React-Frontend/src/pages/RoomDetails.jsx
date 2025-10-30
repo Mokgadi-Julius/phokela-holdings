@@ -44,7 +44,7 @@ const RoomDetails = () => {
   }
 
   const roomImage = galleryImages.length > 0
-    ? `http://localhost:5000${galleryImages[selectedImageIndex]}`
+    ? getImageUrl(galleryImages[selectedImageIndex])
     : 'https://via.placeholder.com/800x600?text=No+Image';
 
   return (

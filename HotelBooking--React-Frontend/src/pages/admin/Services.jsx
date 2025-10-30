@@ -371,7 +371,7 @@ const Services = () => {
                 <div className="h-48 bg-gray-200 relative">
                   {thumbnail ? (
                     <img
-                      src={`http://localhost:5000${thumbnail}`}
+                      src={getImageUrl(thumbnail)}
                       alt={service.name || 'Service'}
                       className="w-full h-full object-cover"
                       onError={(e) => {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { servicesAPI } from '../services/api';
 import images from '../assets';
 import { useState, useEffect } from 'react';
+import { getImageUrl } from '../utils/imageHelpers';
 
 const Events = () => {
   const [services, setServices] = useState([]);
@@ -102,7 +103,7 @@ const Events = () => {
                     {thumbnail && (
                       <div className='h-48 bg-gray-200 overflow-hidden'>
                         <img
-                          src={`http://localhost:5000${thumbnail}`}
+                          src={getImageUrl(thumbnail)}
                           alt={service.name}
                           className='w-full h-full object-cover'
                           onError={(e) => {
