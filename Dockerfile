@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy backend files
 COPY HotelBooking--Backend/package*.json ./
-RUN npm ci --only=production
+RUN npm install --production
 
 COPY HotelBooking--Backend/ ./
 
