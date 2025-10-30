@@ -1,0 +1,24 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: phokela_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: phokela_root_2025
+      MYSQL_DATABASE: phokela_guest_house
+      MYSQL_USER: phokela_user
+      MYSQL_PASSWORD: phokela_pass_2025
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pphokela_root_2025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local

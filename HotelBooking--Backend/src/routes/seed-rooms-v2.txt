@@ -1,0 +1,118 @@
+// @route   POST /api/admin/seed-rooms-v2
+// @desc    Seed room data (4 types with quantities) - NEW VERSION
+// @access  Private
+router.post('/seed-rooms-v2', async (req, res) => {
+  try {
+    const Room = require('../models/Room');
+
+    // Delete all existing rooms
+    await Room.destroy({ where: {}, truncate: true });
+
+    // Phokela Guest House - "Home Away from Home"
+    // 4 Room Types with Quantity Tracking
+    const roomTypes = [
+      // Room Type 1: Standard Single - R750 (5 rooms available)
+      {
+        name: 'Standard Single Room',
+        type: 'standard',
+        description: 'Comfortable room with one single bed and modern shower facilities. Perfect for solo travelers looking for a peaceful retreat. Your home away from home.',
+        price: 750,
+        capacity: 1,
+        size: 18,
+        beds: 1,
+        amenities: ['WiFi', 'Shower', 'TV', 'Air Conditioning', 'Desk', 'Wardrobe', 'Toiletries', 'Fresh Towels'],
+        totalQuantity: 5,
+        bookedQuantity: 0,
+        availability: true,
+        featured: true,
+        status: 'available',
+        viewType: 'Garden View',
+        smokingAllowed: false,
+        petFriendly: false
+      },
+      // Room Type 2: Twin Room - R850 (7 rooms available)
+      {
+        name: 'Twin Room',
+        type: 'standard',
+        description: 'Spacious room with two single beds and modern shower. Ideal for friends or colleagues traveling together. Experience comfort and convenience.',
+        price: 850,
+        capacity: 2,
+        size: 22,
+        beds: 2,
+        amenities: ['WiFi', 'Shower', 'TV', 'Air Conditioning', 'Desk', 'Wardrobe', 'Toiletries', 'Fresh Towels', 'Mini Fridge'],
+        totalQuantity: 7,
+        bookedQuantity: 0,
+        availability: true,
+        featured: true,
+        status: 'available',
+        viewType: 'Garden View',
+        smokingAllowed: false,
+        petFriendly: false
+      },
+      // Room Type 3: Family Room - R900 (4 rooms available)
+      {
+        name: 'Family Room',
+        type: 'family',
+        description: 'Perfect family accommodation with one double bed and one single bed. Modern shower facilities included. Your comfortable home away from home.',
+        price: 900,
+        capacity: 3,
+        size: 26,
+        beds: 2,
+        amenities: ['WiFi', 'Shower', 'TV', 'Air Conditioning', 'Desk', 'Wardrobe', 'Toiletries', 'Fresh Towels', 'Mini Fridge', 'Coffee Maker'],
+        totalQuantity: 4,
+        bookedQuantity: 0,
+        availability: true,
+        featured: true,
+        status: 'available',
+        viewType: 'Pool View',
+        smokingAllowed: false,
+        petFriendly: false
+      },
+      // Room Type 4: Deluxe Double - R950 (3 rooms available)
+      {
+        name: 'Deluxe Double Room',
+        type: 'deluxe',
+        description: 'Luxurious room with one double bed, featuring both bath and shower facilities. Premium comfort for a memorable stay at your home away from home.',
+        price: 950,
+        capacity: 2,
+        size: 24,
+        beds: 1,
+        amenities: ['WiFi', 'Bath & Shower', 'TV', 'Air Conditioning', 'Desk', 'Wardrobe', 'Toiletries', 'Fresh Towels', 'Mini Fridge', 'Coffee Maker', 'Bathrobe', 'Slippers'],
+        totalQuantity: 3,
+        bookedQuantity: 0,
+        availability: true,
+        featured: false,
+        status: 'available',
+        viewType: 'Garden View',
+        smokingAllowed: false,
+        petFriendly: false
+      }
+    ];
+
+    const createdRooms = await Room.bulkCreate(roomTypes);
+
+    res.json({
+      success: true,
+      message: `Successfully seeded ${createdRooms.length} room types`,
+      data: {
+        totalRoomTypes: createdRooms.length,
+        totalRoomsAvailable: roomTypes.reduce((sum, room) => sum + room.totalQuantity, 0),
+        roomTypes: createdRooms.map(room => ({
+          id: room.id,
+          name: room.name,
+          type: room.type,
+          price: room.price,
+          totalQuantity: room.totalQuantity,
+          availableQuantity: room.getAvailableQuantity()
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Seed rooms v2 error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while seeding rooms',
+      error: error.message
+    });
+  }
+});
