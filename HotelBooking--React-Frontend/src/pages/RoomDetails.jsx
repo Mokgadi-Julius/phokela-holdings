@@ -5,10 +5,13 @@ import { useParams } from 'react-router-dom';
 import { FaCheck } from 'react-icons/fa';
 import { useState } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
+import BookingModal from '../components/BookingModal';
 
 
 const RoomDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState(null);
 
   const { id } = useParams(); // id get form url (/room/:id) as string...
   const { rooms } = useRoomContext();
@@ -160,7 +163,10 @@ const RoomDetails = () => {
                 <div className='h-[60px]'> <KidsDropdown /> </div>
               </div>
 
-              <button className='btn btn-lg btn-primary w-full'>
+              <button
+                onClick={() => setIsBookingModalOpen(true)}
+                className='btn btn-lg btn-primary w-full'
+              >
                 book now for R{price}
               </button>
             </div>
@@ -187,6 +193,20 @@ const RoomDetails = () => {
 
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {room && (
+        <BookingModal
+          service={{
+            ...room,
+            category: 'accommodation',
+            priceUnit: 'per night',
+          }}
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          bookingDetails={bookingDetails}
+        />
+      )}
 
     </section>
   );

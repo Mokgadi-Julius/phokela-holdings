@@ -19,6 +19,7 @@ const roomRoutes = require('./routes/rooms');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/uploads');
+const payfastRoutes = require('./routes/payfast');
 
 const app = express();
 
@@ -55,7 +56,8 @@ app.use(helmet({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  validate: { trustProxy: false } // Disable trust proxy validation for development
 });
 app.use('/api/', limiter);
 
@@ -97,6 +99,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/payfast', payfastRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

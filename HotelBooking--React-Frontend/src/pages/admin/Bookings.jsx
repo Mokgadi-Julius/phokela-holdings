@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { bookingsAPI } from '../../services/api';
+import PayFastButton from '../../components/PayFastButton';
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -403,6 +404,15 @@ const Bookings = () => {
                           </button>
                         </div>
                         <div className="flex space-x-2">
+                          {/* Only show PayFast button for website bookings with pending payment */}
+                          {booking.paymentStatus === 'pending' && booking.source === 'website' && (
+                            <PayFastButton
+                              bookingId={booking.id}
+                              amount={booking.pricing?.totalAmount}
+                              bookingReference={booking.bookingReference}
+                              className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            />
+                          )}
                           <button
                             onClick={() => {
                               setSelectedBooking(booking);
@@ -414,7 +424,7 @@ const Bookings = () => {
                               setShowPaymentModal(true);
                             }}
                             className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
-                            title="Update Payment"
+                            title="Update Payment - Manual"
                           >
                             Payment
                           </button>

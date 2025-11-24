@@ -4,10 +4,13 @@ import { servicesAPI } from '../services/api';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
+import BookingModal from '../components/BookingModal';
 
 const Catering = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
 
   useEffect(() => {
     fetchCateringServices();
@@ -159,12 +162,15 @@ const Catering = () => {
                         </div>
                       )}
 
-                      <Link
-                        to='/contact'
+                      <button
+                        onClick={() => {
+                          setSelectedService(service);
+                          setIsBookingModalOpen(true);
+                        }}
                         className='block w-full text-center bg-accent text-white py-3 rounded-lg hover:bg-accent/90 transition font-semibold'
                       >
-                        Get Quote
-                      </Link>
+                        Book Now
+                      </button>
                     </div>
                   </div>
                 );
@@ -187,6 +193,19 @@ const Catering = () => {
           </Link>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {selectedService && (
+        <BookingModal
+          service={selectedService}
+          isOpen={isBookingModalOpen}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setSelectedService(null);
+          }}
+          bookingDetails={null}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
-const { sequelize, Op } = require('../config/database-mysql');
+const { sequelize } = require('../config/database-mysql');
+const { Op } = require('sequelize');
 const express = require('express');
 const router = express.Router();
 const { Booking, Service, Room } = require('../models');
@@ -96,33 +97,90 @@ router.post('/', validateBooking, async (req, res) => {
   }
 
   try {
-    const service = await Service.findByPk(req.body.service);
+    // Check if this is a room (accommodation) or service booking
+    const serviceId = req.body.service;
+    let service;
+    let isRoom = false;
+
+    // First try to find in Room table (for accommodation)
+    service = await Room.findByPk(serviceId);
+    if (service) {
+      isRoom = true;
+    } else {
+      // If not found in Room table, try Service table
+      service = await Service.findByPk(serviceId);
+      isRoom = false;
+    }
+
     if (!service) {
       return res.status(404).json({ success: false, message: 'Service not found' });
     }
+
     if (!service.availability) {
       return res.status(400).json({ success: false, message: 'Service is currently unavailable' });
     }
 
     const totalGuests = req.body.bookingDetails.adults + req.body.bookingDetails.children;
-    if (totalGuests > service.maxPerson) {
-      return res.status(400).json({ success: false, message: `Maximum ${service.maxPerson} guests allowed` });
+    const maxCapacity = isRoom ? service.capacity : service.maxPerson;
+    if (totalGuests > maxCapacity) {
+      return res.status(400).json({ success: false, message: `Maximum ${maxCapacity} guests allowed` });
     }
 
-    const serviceSnapshot = { name: service.name, price: service.price, priceUnit: service.priceUnit, category: service.category };
+    // Build service snapshot
+    const category = isRoom ? 'accommodation' : service.category;
+    const priceUnit = isRoom ? 'per night' : service.priceUnit;
+    const serviceSnapshot = {
+      name: service.name,
+      price: service.price,
+      priceUnit,
+      category
+    };
 
-    let basePrice = service.price;
-    if (service.category === 'accommodation') {
-      const nights = Math.ceil((new Date(req.body.bookingDetails.checkOut) - new Date(req.body.bookingDetails.checkIn)) / (1000 * 60 * 60 * 24));
+    // Calculate base price
+    let basePrice = parseFloat(service.price);
+    if (category === 'accommodation') {
+      const checkIn = new Date(req.body.bookingDetails.checkIn);
+      const checkOut = new Date(req.body.bookingDetails.checkOut);
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
       basePrice = service.price * (nights > 0 ? nights : 1);
-    } else if (service.category === 'catering') {
+    } else if (category === 'catering') {
       basePrice = service.price * totalGuests;
     }
 
+    // Generate booking reference
+    const date = new Date();
+    const year = date.getFullYear().toString().substr(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const count = await Booking.count({
+      where: {
+        createdAt: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow,
+        },
+      },
+    });
+
+    const sequence = (count + 1).toString().padStart(3, '0');
+    const bookingReference = `PH${year}${month}${day}${sequence}`;
+
+    console.log('Generated bookingReference:', bookingReference);
+    console.log('Type of bookingReference:', typeof bookingReference);
+
     const newBooking = await Booking.create({
-      ...req.body,
+      bookingReference,
       serviceId: service.id,
       serviceSnapshot,
+      primaryGuest: req.body.primaryGuest,
+      additionalGuests: req.body.additionalGuests || [],
+      bookingDetails: req.body.bookingDetails,
+      specialRequests: req.body.specialRequests || {},
+      source: req.body.source || 'website',
       pricing: { basePrice, totalAmount: basePrice, discounts: [], additionalCharges: [] },
     });
 

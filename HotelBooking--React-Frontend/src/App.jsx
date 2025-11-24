@@ -6,6 +6,8 @@ import Accommodation from './pages/Accommodation';
 import Catering from './pages/Catering';
 import Events from './pages/Events';
 import Conference from './pages/Conference';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancelled from './pages/PaymentCancelled';
 import { AdminLayout, AdminLogin, Dashboard, Bookings, Rooms, NewBooking, Calendar, Services as AdminServices, Reports } from './pages/admin';
 
 
@@ -91,6 +93,10 @@ const App = () => {
               <WhatsAppButton />
             </>
           } />
+
+          {/* Payment Routes */}
+          <Route path={'/payment/success'} element={<PaymentSuccess />} />
+          <Route path={'/payment/cancelled'} element={<PaymentCancelled />} />
 
           {/* Admin Routes */}
           <Route path='/admin/login' element={<AdminLogin />} />

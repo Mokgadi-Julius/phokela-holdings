@@ -34,7 +34,7 @@ const connectDB = async () => {
     
 
     // Sync all models
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ force: false });
     console.log('✅ Database models synchronized');
 
     return sequelize;
