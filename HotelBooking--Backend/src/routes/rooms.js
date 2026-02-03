@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
+const Room = require('../models/Room');
 
 // @route   GET /api/rooms
 // @desc    Get all rooms with optional filters
