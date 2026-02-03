@@ -132,7 +132,7 @@ CREATE TABLE `users` (
 -- Insert default admin user (password: admin123 - CHANGE THIS!)
 -- Password hash for 'admin123' using bcrypt
 INSERT INTO `users` (`username`, `email`, `password`, `fullName`, `role`, `active`)
-VALUES ('admin', 'admin@phokela.com', '$2b$10$XqXE7X7.5f5zV5ZwX5Z5Ze5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5', 'System Administrator', 'admin', 1);
+VALUES ('admin', 'admin@phokela.com', '$2b$10$Tt3fVdp1Mt9KwpatzDcAOO/fzJT/mnHpNB4VHwytx1OgFHqWLMjsK', 'System Administrator', 'admin', 1);
 
 -- Create indexes for better query performance
 CREATE INDEX idx_bookings_dates ON bookings((CAST(JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkIn')) AS DATE)));
