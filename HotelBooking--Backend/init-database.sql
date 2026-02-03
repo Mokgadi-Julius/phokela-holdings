@@ -114,7 +114,6 @@ CREATE TABLE `contacts` (
 -- Create Users Table (for admin authentication)
 CREATE TABLE `users` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `username` VARCHAR(100) NOT NULL,
   `email` VARCHAR(255) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `fullName` VARCHAR(200) DEFAULT NULL,
@@ -124,15 +123,14 @@ CREATE TABLE `users` (
   `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_username` (`username`),
   UNIQUE KEY `idx_email` (`email`),
   KEY `idx_role_active` (`role`, `active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert default admin user (password: admin123 - CHANGE THIS!)
 -- Password hash for 'admin123' using bcrypt
-INSERT INTO `users` (`username`, `email`, `password`, `fullName`, `role`, `active`)
-VALUES ('admin', 'admin@phokela.com', '$2b$10$Tt3fVdp1Mt9KwpatzDcAOO/fzJT/mnHpNB4VHwytx1OgFHqWLMjsK', 'System Administrator', 'admin', 1);
+INSERT INTO `users` (`email`, `password`, `fullName`, `role`, `active`)
+VALUES ('admin@phokela.com', '$2b$10$Tt3fVdp1Mt9KwpatzDcAOO/fzJT/mnHpNB4VHwytx1OgFHqWLMjsK', 'System Administrator', 'admin', 1);
 
 -- Create indexes for better query performance
 CREATE INDEX idx_bookings_dates ON bookings((CAST(JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkIn')) AS DATE)));
