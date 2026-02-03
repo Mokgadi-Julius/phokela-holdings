@@ -7,7 +7,7 @@ const Room = ({ room }) => {
   const { id, name, mainImage, images, size, capacity, maxPerson, description, price } = room ?? {};
 
   // Prioritize mainImage, then first image from array, or use placeholder
-  const imageUrl = getMainImageUrl(mainImage, images) || 'https://via.placeholder.com/400x300?text=No+Image';
+  const imageUrl = getMainImageUrl(mainImage, images) || 'https://placehold.co/400x300?text=No+Image';
 
   // Use capacity if available, fallback to maxPerson for backward compatibility
   const guestCapacity = capacity || maxPerson || 1;

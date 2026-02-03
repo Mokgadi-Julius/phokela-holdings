@@ -48,7 +48,7 @@ const RoomDetails = () => {
 
   const roomImage = galleryImages.length > 0
     ? getImageUrl(galleryImages[selectedImageIndex])
-    : 'https://via.placeholder.com/800x600?text=No+Image';
+    : 'https://placehold.co/800x600?text=No+Image';
 
   return (
     <section>
