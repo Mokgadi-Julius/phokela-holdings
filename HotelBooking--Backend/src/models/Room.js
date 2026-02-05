@@ -44,7 +44,7 @@ const Room = sequelize.define('Room', {
   },
   size: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
+    allowNull: true,
     defaultValue: 0,
     validate: {
       min: 0,

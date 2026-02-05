@@ -3,41 +3,10 @@ const router = express.Router();
 const { Service } = require('../models');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
-const multer = require('multer');
+const { upload } = require('../config/cloudinary');
+const auth = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
-
-// Configure multer for service image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/services');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, 'service-' + uniqueSuffix + extension);
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed'), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-});
 
 // Validation middleware
 const validateService = [
@@ -94,7 +63,7 @@ router.get('/', async (req, res) => {
 // @route   POST /api/services/upload-images
 // @desc    Upload service images
 // @access  Private (Admin only)
-router.post('/upload-images', upload.array('images', 10), async (req, res) => {
+router.post('/upload-images', auth, upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -103,9 +72,12 @@ router.post('/upload-images', upload.array('images', 10), async (req, res) => {
       });
     }
 
-    const imageUrls = req.files.map(file =>
-      `/uploads/services/${file.filename}`
-    );
+    const imageUrls = req.files.map(file => {
+      if (file.path.startsWith('http')) {
+        return file.path;
+      }
+      return `/uploads/${file.filename}`;
+    });
 
     res.json({
       success: true,
@@ -170,7 +142,7 @@ router.get('/category/:category', async (req, res) => {
 // @route   PATCH /api/services/:id/availability
 // @desc    Toggle service availability
 // @access  Private (Admin only)
-router.patch('/:id/availability', async (req, res) => {
+router.patch('/:id/availability', auth, async (req, res) => {
   try {
     const service = await Service.findByPk(req.params.id);
 
@@ -229,7 +201,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/services
 // @desc    Create new service
 // @access  Private (Admin only)
-router.post('/', validateService, async (req, res) => {
+router.post('/', auth, validateService, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -259,7 +231,7 @@ router.post('/', validateService, async (req, res) => {
 // @route   PUT /api/services/:id
 // @desc    Update service by ID
 // @access  Private (Admin only)
-router.put('/:id', validateService, async (req, res) => {
+router.put('/:id', auth, validateService, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -297,7 +269,7 @@ router.put('/:id', validateService, async (req, res) => {
 // @route   DELETE /api/services/:id
 // @desc    Delete service by ID
 // @access  Private (Admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const service = await Service.findByPk(req.params.id);
     if (!service) {

@@ -14,7 +14,6 @@ const Rooms = () => {
     description: '',
     price: '',
     capacity: '',
-    size: '',
     beds: '',
     totalQuantity: '1',
     amenities: [],
@@ -114,6 +113,7 @@ const Rooms = () => {
       } catch (err) {
         console.error('Image upload error:', err);
         setError('Failed to upload images: ' + err.message);
+        alert('Image upload failed: ' + err.message);
       } finally {
         setUploadingImages(false);
       }
@@ -124,12 +124,15 @@ const Rooms = () => {
     e.preventDefault();
 
     try {
+      if (!formData.price || isNaN(parseFloat(formData.price))) {
+        alert('Please enter a valid price');
+        return;
+      }
       // Prepare form data for submission
       const roomData = {
         ...formData,
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
-        size: parseFloat(formData.size),
         beds: parseInt(formData.beds),
         totalQuantity: parseInt(formData.totalQuantity),
       };
@@ -153,6 +156,7 @@ const Rooms = () => {
       }
     } catch (err) {
       setError(err.message || 'Failed to save room');
+      alert('Error saving room: ' + (err.message || 'Unknown error'));
       console.error('Save room error:', err);
     }
   };
@@ -180,7 +184,6 @@ const Rooms = () => {
       description: room.description,
       price: room.price,
       capacity: room.capacity,
-      size: room.size,
       beds: room.beds,
       totalQuantity: room.totalQuantity || 1,
       amenities: room.amenities || [],
@@ -232,7 +235,6 @@ const Rooms = () => {
       description: '',
       price: '',
       capacity: '',
-      size: '',
       beds: '',
       totalQuantity: '1',
       amenities: [],
@@ -352,7 +354,6 @@ const Rooms = () => {
 
                 <div className="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-600">
                   <div>Capacity: {room.capacity} guests</div>
-                  <div>Size: {room.size} m²</div>
                   <div>Beds: {room.beds}</div>
                   <div className="font-bold text-blue-600">R{room.price}/night</div>
                   <div className="col-span-2 pt-2 border-t border-gray-200">
@@ -477,7 +478,7 @@ const Rooms = () => {
               </div>
 
               {/* Room Details */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Price (R/night) *
@@ -505,22 +506,6 @@ const Rooms = () => {
                     onChange={handleInputChange}
                     required
                     min="1"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Size (m²) *
-                  </label>
-                  <input
-                    type="number"
-                    name="size"
-                    value={formData.size}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    step="0.1"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

@@ -10,6 +10,22 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Listen for booking updates
+    const bookingChannel = new BroadcastChannel('booking_updates');
+    bookingChannel.onmessage = (event) => {
+      if (event.data === 'new_booking' || event.data === 'booking_updated') {
+        fetchDashboardData();
+      }
+    };
+
+    // Set up polling to refresh data every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+
+    return () => {
+      bookingChannel.close();
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -248,7 +264,7 @@ const Dashboard = () => {
             <span className="text-sm font-medium text-gray-700">New Booking</span>
           </Link>
           <Link
-            to="/admin/services/new"
+            to="/admin/services?add=true"
             className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
           >
             <span className="text-3xl mb-2">🏨</span>

@@ -5,6 +5,7 @@ const router = express.Router();
 const { Booking, Service, Room } = require('../models');
 const { body, validationResult } = require('express-validator');
 const sendEmail = require('../utils/emailService');
+const auth = require('../middleware/auth');
 
 // Validation middleware
 const validateBooking = [
@@ -20,7 +21,7 @@ const validateBooking = [
 // @route   GET /api/bookings
 // @desc    Get all bookings (Admin only)
 // @access  Private
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const {
       status,
@@ -205,7 +206,7 @@ router.post('/', validateBooking, async (req, res) => {
 // @route   GET /api/bookings/:id
 // @desc    Get single booking by ID
 // @access  Private
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id, {
       include: [{
@@ -238,7 +239,7 @@ router.get('/:id', async (req, res) => {
 // @route   PATCH /api/bookings/:id/status
 // @desc    Update booking status
 // @access  Private
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', auth, async (req, res) => {
   try {
     const { status, notes } = req.body;
 
@@ -320,7 +321,7 @@ router.patch('/:id/status', async (req, res) => {
 // @route   PATCH /api/bookings/:id/payment
 // @desc    Update payment status
 // @access  Private
-router.patch('/:id/payment', async (req, res) => {
+router.patch('/:id/payment', auth, async (req, res) => {
   try {
     const { paymentStatus, paymentMethod, amount, reference } = req.body;
 
@@ -378,7 +379,7 @@ router.patch('/:id/payment', async (req, res) => {
 // @route   POST /api/bookings/:id/notes
 // @desc    Add note to booking
 // @access  Private
-router.post('/:id/notes', async (req, res) => {
+router.post('/:id/notes', auth, async (req, res) => {
   try {
     const { note, type = 'general' } = req.body;
 
@@ -419,7 +420,7 @@ router.post('/:id/notes', async (req, res) => {
 // @route   DELETE /api/bookings/:id
 // @desc    Delete/Cancel booking
 // @access  Private
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id);
 

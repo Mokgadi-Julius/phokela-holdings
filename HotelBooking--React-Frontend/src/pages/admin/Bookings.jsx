@@ -29,11 +29,37 @@ const Bookings = () => {
 
   useEffect(() => {
     fetchBookings();
+
+    // Listen for booking updates
+    const bookingChannel = new BroadcastChannel('booking_updates');
+    bookingChannel.onmessage = (event) => {
+      if (event.data === 'new_booking' || event.data === 'booking_updated') {
+        fetchBookings();
+      }
+    };
+
+    // Set up polling to refresh data every 30 seconds
+    const interval = setInterval(fetchBookings, 30000);
+
+    return () => {
+      bookingChannel.close();
+      clearInterval(interval);
+    };
   }, [filters]);
 
-  const fetchBookings = async () => {
+  const broadcastUpdate = () => {
+    // Cross-tab update
+    const bookingChannel = new BroadcastChannel('booking_updates');
+    bookingChannel.postMessage('booking_updated');
+    bookingChannel.close();
+
+    // Same-tab update
+    window.dispatchEvent(new Event('local_booking_update'));
+  };
+
+  const fetchBookings = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isManualRefresh) setLoading(true);
       setError(null);
       const response = await bookingsAPI.getAll(filters);
       if (response.success) {
@@ -63,6 +89,7 @@ const Bookings = () => {
         setBookings(bookings.map(b =>
           b.id === selectedBooking.id ? response.data : b
         ));
+        broadcastUpdate();
         setShowStatusModal(false);
         setSelectedBooking(null);
         setNewStatus('');
@@ -85,6 +112,7 @@ const Bookings = () => {
         setBookings(bookings.map(b =>
           b.id === selectedBooking.id ? response.data : b
         ));
+        broadcastUpdate();
         setShowPaymentModal(false);
         setSelectedBooking(null);
         setPaymentData({
@@ -123,6 +151,7 @@ const Bookings = () => {
         setBookings(bookings.map(b =>
           b.id === booking.id ? response.data : b
         ));
+        broadcastUpdate();
       }
     } catch (err) {
       alert(`Failed to ${action} booking`);
@@ -172,7 +201,7 @@ const Bookings = () => {
         </div>
         <div className="mt-4 md:mt-0 flex space-x-3">
           <button
-            onClick={fetchBookings}
+            onClick={() => fetchBookings(true)}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
           >
             Refresh

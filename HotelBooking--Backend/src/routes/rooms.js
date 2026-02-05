@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
 const Room = require('../models/Room');
+const auth = require('../middleware/auth');
 
 // @route   GET /api/rooms
 // @desc    Get all rooms with optional filters
@@ -168,7 +169,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/rooms
 // @desc    Create a new room
 // @access  Private (Admin only - add auth middleware later)
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const {
       name,
@@ -193,7 +194,7 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!name || !type || !description || !price || !capacity || !size || !beds) {
+    if (!name || !type || !description || !price || !capacity || !beds) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields'
@@ -206,7 +207,7 @@ router.post('/', async (req, res) => {
       description,
       price: parseFloat(price),
       capacity: parseInt(capacity),
-      size: parseFloat(size),
+      size: size ? parseFloat(size) : 0,
       beds: parseInt(beds),
       totalQuantity: totalQuantity ? parseInt(totalQuantity) : 1,
       bookedQuantity: 0,
@@ -257,7 +258,7 @@ router.post('/', async (req, res) => {
 // @route   PUT /api/rooms/:id
 // @desc    Update a room
 // @access  Private (Admin only)
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
 
@@ -307,7 +308,7 @@ router.put('/:id', async (req, res) => {
     if (description !== undefined) room.description = description;
     if (price !== undefined) room.price = parseFloat(price);
     if (capacity !== undefined) room.capacity = parseInt(capacity);
-    if (size !== undefined) room.size = parseFloat(size);
+    if (size !== undefined) room.size = size ? parseFloat(size) : 0;
     if (beds !== undefined) room.beds = parseInt(beds);
     if (totalQuantity !== undefined) room.totalQuantity = parseInt(totalQuantity);
     if (amenities !== undefined) room.amenities = amenities;
@@ -358,7 +359,7 @@ router.put('/:id', async (req, res) => {
 // @route   DELETE /api/rooms/:id
 // @desc    Delete a room
 // @access  Private (Admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
 
@@ -403,7 +404,7 @@ router.delete('/:id', async (req, res) => {
 // @route   POST /api/rooms/upload-images
 // @desc    Upload room images
 // @access  Private (Admin only)
-router.post('/upload-images', upload.array('images', 10), async (req, res) => {
+router.post('/upload-images', auth, upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -412,7 +413,15 @@ router.post('/upload-images', upload.array('images', 10), async (req, res) => {
       });
     }
 
-    const imageUrls = req.files.map(file => file.path); // Cloudinary returns the URL in file.path
+    // If using local storage, we want to return the filename that can be served
+    // If using Cloudinary, file.path is the full URL
+    const imageUrls = req.files.map(file => {
+      if (file.path.startsWith('http')) {
+        return file.path;
+      }
+      // For local storage, we might want to return a relative path like /uploads/filename
+      return `/uploads/${file.filename}`;
+    });
 
     res.json({
       success: true,
@@ -434,7 +443,7 @@ router.post('/upload-images', upload.array('images', 10), async (req, res) => {
 // @route   PATCH /api/rooms/:id/availability
 // @desc    Toggle room availability
 // @access  Private (Admin only)
-router.patch('/:id/availability', async (req, res) => {
+router.patch('/:id/availability', auth, async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
 
@@ -465,7 +474,7 @@ router.patch('/:id/availability', async (req, res) => {
 // @route   PATCH /api/rooms/:id/status
 // @desc    Update room status
 // @access  Private (Admin only)
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', auth, async (req, res) => {
   try {
     const room = await Room.findByPk(req.params.id);
 

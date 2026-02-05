@@ -6,8 +6,9 @@ import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import { format, parseISO } from 'date-fns';
 import axios from 'axios';
+import { bookingsAPI } from '../services/api';
 
-const BookingCalendar = () => {
+const BookingCalendar = ({ refreshKey }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -15,26 +16,38 @@ const BookingCalendar = () => {
   const [filterStatus, setFilterStatus] = useState('all');
 
   // Fetch bookings from the API
+  const fetchBookings = async () => {
+    try {
+      const response = await bookingsAPI.getAll();
+      if (response.success) {
+        setBookings(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/bookings');
-        if (response.data.success) {
-          setBookings(response.data.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-      } finally {
-        setLoading(false);
+    fetchBookings();
+
+    // Set up BroadcastChannel to listen for new bookings
+    const bookingChannel = new BroadcastChannel('booking_updates');
+    bookingChannel.onmessage = (event) => {
+      if (event.data === 'new_booking' || event.data === 'booking_updated') {
+        console.log('🔄 Booking update received via BroadcastChannel, refetching...');
+        fetchBookings();
       }
     };
 
-    fetchBookings();
-
     // Set up polling to refresh data every 30 seconds
     const interval = setInterval(fetchBookings, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      bookingChannel.close();
+    };
+  }, [refreshKey]);
 
   // Format bookings for FullCalendar
   const calendarEvents = bookings
@@ -129,20 +142,7 @@ const BookingCalendar = () => {
           
           <button
             onClick={() => {
-              // Refresh bookings
               setLoading(true);
-              const fetchBookings = async () => {
-                try {
-                  const response = await axios.get('http://localhost:5000/api/bookings');
-                  if (response.data.success) {
-                    setBookings(response.data.data || []);
-                  }
-                } catch (error) {
-                  console.error('Error fetching bookings:', error);
-                } finally {
-                  setLoading(false);
-                }
-              };
               fetchBookings();
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

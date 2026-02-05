@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { servicesAPI } from '../../services/api';
-import { getImageUrls } from '../../utils/imageHelpers';
+import { getImageUrl, getImageUrls } from '../../utils/imageHelpers';
 
 const Services = () => {
+  const location = useLocation();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -82,7 +84,13 @@ const Services = () => {
 
   useEffect(() => {
     fetchServices();
-  }, []);
+    
+    // Check for "add" query parameter to auto-open modal
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === 'true') {
+      setShowModal(true);
+    }
+  }, [location.search]);
 
   const fetchServices = async () => {
     try {
@@ -149,6 +157,7 @@ const Services = () => {
       } catch (err) {
         console.error('Image upload error:', err);
         setError('Failed to upload images: ' + err.message);
+        alert('Image upload failed: ' + err.message);
       } finally {
         setUploadingImages(false);
       }
@@ -174,6 +183,11 @@ const Services = () => {
     e.preventDefault();
 
     try {
+      if (!formData.price || isNaN(parseFloat(formData.price))) {
+        alert('Please enter a valid price');
+        return;
+      }
+
       const serviceData = {
         ...formData,
         price: parseFloat(formData.price),
@@ -193,8 +207,13 @@ const Services = () => {
         handleCloseModal();
       }
     } catch (err) {
-      setError(err.message || 'Failed to save service');
       console.error('Save service error:', err);
+      const errorMessage = err.data && err.data.errors
+        ? err.data.errors.map(e => `${e.path || 'Field'}: ${e.msg}`).join('\n')
+        : (err.message || 'Failed to save service');
+      
+      setError(errorMessage);
+      alert('Error saving service:\n' + errorMessage);
     }
   };
 

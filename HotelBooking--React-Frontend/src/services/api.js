@@ -15,12 +15,19 @@ class APIError extends Error {
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  const token = localStorage.getItem('adminToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   };
 
   try {
@@ -101,10 +108,16 @@ export const servicesAPI = {
   // Upload service images
   uploadImages: async (formData) => {
     const url = `${API_BASE_URL}/services/upload-images`;
+    const token = localStorage.getItem('adminToken');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers,
         body: formData,
         // Don't set Content-Type header - browser will set it with boundary
       });
@@ -134,6 +147,14 @@ export const bookingsAPI = {
   // Create a new booking
   create: async (bookingData) => {
     return apiRequest('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(bookingData),
+    });
+  },
+
+  // Create a new room booking (manual/reception)
+  createRoomBooking: async (bookingData) => {
+    return apiRequest('/bookings/rooms', {
       method: 'POST',
       body: JSON.stringify(bookingData),
     });
@@ -246,10 +267,16 @@ export const roomsAPI = {
   // Upload room images
   uploadImages: async (formData) => {
     const url = `${API_BASE_URL}/rooms/upload-images`;
+    const token = localStorage.getItem('adminToken');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers,
         body: formData,
         // Don't set Content-Type header - browser will set it with boundary
       });
@@ -290,6 +317,52 @@ export const roomsAPI = {
   search: async (query, filters = {}) => {
     const params = new URLSearchParams({ q: query, ...filters }).toString();
     return apiRequest(`/rooms/search?${params}`);
+  },
+};
+
+// Expenditures API
+export const expendituresAPI = {
+  // Get all expenditures
+  getAll: async (filters = {}) => {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = queryParams ? `/expenditures?${queryParams}` : '/expenditures';
+    return apiRequest(endpoint);
+  },
+
+  // Create a new expenditure
+  create: async (data) => {
+    return apiRequest('/expenditures', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete an expenditure
+  delete: async (id) => {
+    return apiRequest(`/expenditures/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Settings API
+export const settingsAPI = {
+  // Get all settings
+  getAll: async () => {
+    return apiRequest('/settings');
+  },
+
+  // Get settings by group
+  getByGroup: async (group) => {
+    return apiRequest(`/settings/${group}`);
+  },
+
+  // Update settings (bulk)
+  update: async (settings, group = 'general') => {
+    return apiRequest('/settings', {
+      method: 'POST',
+      body: JSON.stringify({ settings, group }),
+    });
   },
 };
 
@@ -349,6 +422,8 @@ export default {
   bookings: bookingsAPI,
   contacts: contactsAPI,
   rooms: roomsAPI,
+  expenditures: expendituresAPI,
+  settings: settingsAPI,
   admin: adminAPI,
   healthCheck,
 };

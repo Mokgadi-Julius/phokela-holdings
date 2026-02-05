@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminAPI, roomsAPI, servicesAPI } from '../../services/api';
+import { adminAPI, roomsAPI, servicesAPI, expendituresAPI } from '../../services/api';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -10,27 +10,69 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7days');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  
+  // Expenditure state
+  const [expenditures, setExpenditures] = useState([]);
+  const [showExpModal, setShowExpModal] = useState(false);
+  const [expFormData, setExpFormData] = useState({
+    title: '',
+    category: 'other',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    reference: ''
+  });
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      const [dashboardRes, roomsRes, servicesRes] = await Promise.all([
+      const [dashboardRes, roomsRes, servicesRes, expRes] = await Promise.all([
         adminAPI.getDashboard(),
         roomsAPI.getAll(),
-        servicesAPI.getAll()
+        servicesAPI.getAll(),
+        expendituresAPI.getAll()
       ]);
 
       const stats = dashboardRes.data.stats;
       const monthlyData = dashboardRes.data.monthlyOverview || [];
       const recentBookings = dashboardRes.data.recentBookings || [];
+      const allExpenditures = expRes.data || [];
+      setExpenditures(allExpenditures);
 
       // Process monthly revenue and bookings data
-      const revenueData = monthlyData.map(item => ({
-        month: item.month || 'N/A',
-        revenue: parseFloat(item.revenue) || 0,
-        bookings: parseInt(item.bookings) || 0
+      const revenueData = monthlyData.map(item => {
+        // Calculate expenditures for this month
+        const monthYear = item.month; // e.g. "Feb 2026"
+        const monthExpenditure = allExpenditures
+          .filter(exp => {
+            const expDate = new Date(exp.date);
+            const expMonthYear = expDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+            return expMonthYear === monthYear;
+          })
+          .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+
+        return {
+          month: monthYear,
+          revenue: parseFloat(item.revenue) || 0,
+          bookings: parseInt(item.bookings) || 0,
+          expenditure: monthExpenditure,
+          profit: (parseFloat(item.revenue) || 0) - monthExpenditure
+        };
+      });
+
+      // Expenditure by category
+      const expByCategory = {};
+      allExpenditures.forEach(exp => {
+        const cat = exp.category || 'other';
+        if (!expByCategory[cat]) expByCategory[cat] = 0;
+        expByCategory[cat] += parseFloat(exp.amount);
+      });
+
+      const expenditureCategoryData = Object.entries(expByCategory).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
       }));
 
       // Room occupancy data
@@ -81,7 +123,8 @@ const Reports = () => {
         categoryData,
         statusData,
         dailyBookings,
-        recentBookings
+        recentBookings,
+        expenditureCategoryData
       });
     } catch (error) {
       console.error('Failed to fetch report data:', error);
@@ -136,6 +179,16 @@ const Reports = () => {
             <span className="text-sm text-gray-700">Auto-refresh (30s)</span>
           </label>
 
+          <button
+            onClick={() => setShowExpModal(true)}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Expenditure
+          </button>
+          
           {/* Refresh Button */}
           <button
             onClick={fetchReportData}
@@ -198,9 +251,9 @@ const Reports = () => {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue & Bookings Trend */}
+        {/* Profit, Revenue & Expenditure Trend */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Revenue & Bookings Trend</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Financial Performance (Profit vs Expense)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={reportData.revenueData}>
               <defs>
@@ -208,19 +261,23 @@ const Reports = () => {
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                 </linearGradient>
-                <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
                   <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
+              <YAxis />
               <Tooltip />
               <Legend />
-              <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#3B82F6" fillOpacity={1} fill="url(#colorRevenue)" name="Revenue (R)" />
-              <Area yAxisId="right" type="monotone" dataKey="bookings" stroke="#10B981" fillOpacity={1} fill="url(#colorBookings)" name="Bookings" />
+              <Area type="monotone" dataKey="revenue" stroke="#3B82F6" fillOpacity={1} fill="url(#colorRevenue)" name="Revenue (R)" />
+              <Area type="monotone" dataKey="expenditure" stroke="#EF4444" fillOpacity={1} fill="url(#colorExp)" name="Expenditure (R)" />
+              <Area type="monotone" dataKey="profit" stroke="#10B981" fillOpacity={1} fill="url(#colorProfit)" name="Net Profit (R)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -310,6 +367,64 @@ const Reports = () => {
       </div>
 
       {/* Recent Activity Table */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Expenditure Breakdown */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Expenditure Breakdown</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={reportData.expenditureCategoryData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {reportData.expenditureCategoryData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => `R${value.toLocaleString()}`} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Expenditure History */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Expenditures</h2>
+          <div className="overflow-y-auto max-h-[300px]">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {expenditures.slice(0, 10).map((exp) => (
+                  <tr key={exp.id}>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-600">{exp.date}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900 font-medium">{exp.title}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-red-600 font-bold">R{parseFloat(exp.amount).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {expenditures.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="px-4 py-8 text-center text-gray-500">No expenditures recorded yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity Table */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Bookings</h2>
         <div className="overflow-x-auto">
@@ -349,6 +464,108 @@ const Reports = () => {
           </table>
         </div>
       </div>
+
+      {/* Expenditure Modal */}
+      {showExpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Add New Expenditure</h3>
+              <button onClick={() => setShowExpModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await expendituresAPI.create(expFormData);
+                setShowExpModal(false);
+                setExpFormData({
+                  title: '',
+                  category: 'other',
+                  amount: '',
+                  date: new Date().toISOString().split('T')[0],
+                  description: '',
+                  reference: ''
+                });
+                fetchReportData();
+              } catch (err) {
+                alert('Failed to record expenditure: ' + err.message);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={expFormData.title}
+                  onChange={(e) => setExpFormData({...expFormData, title: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  placeholder="e.g., Monthly Electricity"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (R) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={expFormData.amount}
+                    onChange={(e) => setExpFormData({...expFormData, amount: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={expFormData.date}
+                    onChange={(e) => setExpFormData({...expFormData, date: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={expFormData.category}
+                  onChange={(e) => setExpFormData({...expFormData, category: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="supplies">Supplies</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="salaries">Salaries</option>
+                  <option value="utilities">Utilities</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reference</label>
+                <input
+                  type="text"
+                  value={expFormData.reference}
+                  onChange={(e) => setExpFormData({...expFormData, reference: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  placeholder="Invoice # or receipt #"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition"
+              >
+                Record Expenditure
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ const { Contact } = require('../models');
 const { body, validationResult } = require('express-validator');
 const sendEmail = require('../utils/emailService');
 const { Op } = require('sequelize');
+const auth = require('../middleware/auth');
 
 // Validation middleware
 const validateContact = [
@@ -16,7 +17,7 @@ const validateContact = [
 // @route   GET /api/contacts
 // @desc    Get all contacts (Admin only)
 // @access  Private
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const {
       status,

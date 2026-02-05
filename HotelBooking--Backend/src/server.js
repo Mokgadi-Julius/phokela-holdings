@@ -20,6 +20,8 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/uploads');
 const payfastRoutes = require('./routes/payfast');
+const expenditureRoutes = require('./routes/expenditures');
+const settingRoutes = require('./routes/settings');
 
 const app = express();
 
@@ -55,8 +57,11 @@ app.use(helmet({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit for development
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again later.'
+  },
   validate: { trustProxy: false } // Disable trust proxy validation for development
 });
 app.use('/api/', limiter);
@@ -100,6 +105,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/payfast', payfastRoutes);
+app.use('/api/expenditures', expenditureRoutes);
+app.use('/api/settings', settingRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

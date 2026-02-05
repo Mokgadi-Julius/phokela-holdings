@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { roomsAPI, bookingsAPI } from '../../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -41,9 +42,9 @@ const NewBooking = () => {
   const fetchRooms = async () => {
     try {
       setLoadingRooms(true);
-      const response = await axios.get(`${API_URL}/rooms`);
-      if (response.data.success) {
-        setRooms(response.data.data);
+      const response = await roomsAPI.getAll();
+      if (response.success) {
+        setRooms(response.data);
       }
     } catch (err) {
       console.error('Failed to fetch rooms:', err);
@@ -95,9 +96,17 @@ const NewBooking = () => {
         }
       };
 
-      const response = await axios.post(`${API_URL}/bookings/rooms`, bookingData);
+      const response = await bookingsAPI.createRoomBooking(bookingData);
 
-      if (response.data.success) {
+      if (response.success) {
+        // Broadcast that a new booking was created (Cross-tab)
+        const bookingChannel = new BroadcastChannel('booking_updates');
+        bookingChannel.postMessage('new_booking');
+        bookingChannel.close();
+
+        // Dispatch local event (Same-tab)
+        window.dispatchEvent(new Event('local_booking_update'));
+
         setSuccess(true);
         setTimeout(() => {
           navigate('/admin/bookings');

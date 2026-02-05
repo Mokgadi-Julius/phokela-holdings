@@ -22,7 +22,7 @@ const RoomDetails = () => {
   //   console.log(key);
   // }
 
-  const { name, description, facilities, amenities, price, imageLg, mainImage, images, capacity, maxPerson, size, beds, type } = room ?? {};
+  const { name, description, facilities, amenities, price, imageLg, mainImage, images, capacity, maxPerson, beds, type } = room ?? {};
 
   // Handle both old and new schema
   const roomAmenities = amenities || facilities || [];
@@ -75,11 +75,6 @@ const RoomDetails = () => {
               {capacity && (
                 <div className='flex items-center gap-2 bg-accent/10 px-4 py-2 rounded'>
                   <span className='font-semibold'>Capacity:</span> {guestCapacity} guests
-                </div>
-              )}
-              {size && (
-                <div className='flex items-center gap-2 bg-accent/10 px-4 py-2 rounded'>
-                  <span className='font-semibold'>Size:</span> {size}m²
                 </div>
               )}
               {beds && (

@@ -4,7 +4,7 @@ import { getMainImageUrl } from '../utils/imageHelpers';
 
 const Room = ({ room }) => {
 
-  const { id, name, mainImage, images, size, capacity, maxPerson, description, price } = room ?? {};
+  const { id, name, mainImage, images, capacity, maxPerson, description, price } = room ?? {};
 
   // Prioritize mainImage, then first image from array, or use placeholder
   const imageUrl = getMainImageUrl(mainImage, images) || 'https://placehold.co/400x300?text=No+Image';
@@ -21,17 +21,7 @@ const Room = ({ room }) => {
 
       <div className='bg-white shadow-lg max-w-[280px] sm:max-w-[300px] mx-auto h-[60px] -translate-y-1/2 flex justify-center items-center uppercase font-tertiary tracking-[1px] font-semibold text-sm sm:text-base'>
 
-        <div className='flex justify-between w-[85%] sm:w-[80%]'>
-
-          <div className='flex items-center gap-x-1 sm:gap-x-2'>
-            <div className='text-accent'>
-              <BsArrowsFullscreen className='text-[12px] sm:text-[15px]' />
-            </div>
-            <div className='flex gap-x-1 text-xs sm:text-sm'>
-              <div>Size</div>
-              <div>{size}m2</div>
-            </div>
-          </div>
+        <div className='flex justify-center w-[85%] sm:w-[80%]'>
 
           <div className='flex items-center gap-x-1 sm:gap-x-2'>
             <div className='text-accent'>

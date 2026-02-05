@@ -4,6 +4,7 @@ const { Booking, Room } = require('../models');
 const { body, validationResult } = require('express-validator');
 const sendEmail = require('../utils/emailService');
 const { Op } = require('sequelize');
+const auth = require('../middleware/auth');
 
 // Generate unique booking reference
 const generateBookingReference = () => {
@@ -29,8 +30,8 @@ const validateRoomBooking = [
 
 // @route   POST /api/bookings/rooms
 // @desc    Create new room booking
-// @access  Public
-router.post('/', validateRoomBooking, async (req, res) => {
+// @access  Private (Admin manual booking)
+router.post('/', auth, validateRoomBooking, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -226,7 +227,7 @@ router.get('/availability', async (req, res) => {
 // @route   DELETE /api/bookings/rooms/:id
 // @desc    Cancel room booking (releases rooms)
 // @access  Private
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id, {
       include: [{ model: Room, as: 'room' }]

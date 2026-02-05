@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { Op, fn, col, literal } = require('sequelize');
-const { Service, Booking, Contact } = require('../models');
+const { Service, Booking, Contact, Room } = require('../models');
 const { sequelize } = require('../config/database-mysql');
+const auth = require('../middleware/auth');
 
 // @route   GET /api/admin/dashboard
 // @desc    Get admin dashboard data
 // @access  Private
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', auth, async (req, res) => {
   try {
     const today = new Date();
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -33,34 +34,57 @@ router.get('/dashboard', async (req, res) => {
       Contact.count({ where: { status: 'new' } })
     ]);
 
-    const thisMonthRevenueResult = await Booking.findOne({
-      attributes: [
-        [fn('SUM', literal("CAST(JSON_UNQUOTE(JSON_EXTRACT(pricing, '$.totalAmount')) AS DECIMAL(10, 2))")), 'total']
-      ],
-      where: {
-        createdAt: { [Op.gte]: startOfMonth },
-        status: { [Op.in]: ['confirmed', 'completed'] }
-      }
-    });
-    const thisMonthRevenue = thisMonthRevenueResult?.get('total') || 0;
+    // Fetch all confirmed/completed bookings for the last 7 months to calculate revenue in JS
+    const sevenMonthsAgo = new Date();
+    sevenMonthsAgo.setMonth(sevenMonthsAgo.getMonth() - 7);
+    sevenMonthsAgo.setDate(1);
 
-    // Monthly overview (last 7 months)
-    const monthlyOverview = await sequelize.query(`
-      SELECT
-        DATE_FORMAT(createdAt, '%Y-%m') AS month,
-        COUNT(id) AS bookings,
-        SUM(CAST(JSON_UNQUOTE(JSON_EXTRACT(pricing, '$.totalAmount')) AS DECIMAL(10, 2))) AS revenue
-      FROM bookings
-      WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 MONTH)
-      GROUP BY month
-      ORDER BY month ASC
-    `, { type: sequelize.QueryTypes.SELECT });
+    const revenueBookings = await Booking.findAll({
+      where: {
+        createdAt: { [Op.gte]: sevenMonthsAgo },
+        status: { [Op.in]: ['confirmed', 'completed'] }
+      },
+      attributes: ['id', 'pricing', 'createdAt']
+    });
+
+    // Calculate this month revenue
+    let thisMonthRevenue = 0;
+    const monthlyOverviewMap = {};
+
+    revenueBookings.forEach(booking => {
+      const pricing = booking.pricing;
+      const amount = parseFloat(pricing?.totalAmount || 0);
+      const bookingDate = new Date(booking.createdAt);
+      
+      // Add to this month revenue if applicable
+      if (bookingDate >= startOfMonth) {
+        thisMonthRevenue += amount;
+      }
+
+      // Add to monthly overview
+      const monthKey = bookingDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      const monthSortKey = bookingDate.toISOString().substring(0, 7); // YYYY-MM
+
+      if (!monthlyOverviewMap[monthKey]) {
+        monthlyOverviewMap[monthKey] = { month: monthKey, bookings: 0, revenue: 0, sortKey: monthSortKey };
+      }
+      monthlyOverviewMap[monthKey].bookings += 1;
+      monthlyOverviewMap[monthKey].revenue += amount;
+    });
+
+    // Convert map to sorted array
+    const monthlyOverview = Object.values(monthlyOverviewMap)
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map(({ month, bookings, revenue }) => ({ month, bookings, revenue }));
 
     // Recent bookings
     const recentBookings = await Booking.findAll({
-      include: [{ model: Service, as: 'service', attributes: ['name', 'category'] }],
+      include: [
+        { model: Service, as: 'service', attributes: ['name', 'category'] },
+        { model: Room, as: 'room', attributes: ['name', 'type'] }
+      ],
       order: [['createdAt', 'DESC']],
-      limit: 5
+      limit: 10
     });
 
     // Upcoming bookings (next 7 days)
@@ -175,7 +199,7 @@ router.get('/reports/bookings', async (req, res) => {
 // @route   GET /api/admin/reports/revenue
 // @desc    Get revenue reports
 // @access  Private
-router.get('/reports/revenue', async (req, res) => {
+router.get('/reports/revenue', auth, async (req, res) => {
   try {
     const { period = 'month', year, month } = req.query;
 
@@ -237,7 +261,7 @@ router.get('/reports/revenue', async (req, res) => {
 // @route   POST /api/admin/seed
 // @desc    Seed initial data (development only)
 // @access  Private
-router.post('/seed', async (req, res) => {
+router.post('/seed', auth, async (req, res) => {
   try {
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({
@@ -507,7 +531,7 @@ router.post('/seed', async (req, res) => {
 // @route   POST /api/admin/seed-rooms
 // @desc    Seed room data (4 types with quantities)
 // @access  Private
-router.post('/seed-rooms', async (req, res) => {
+router.post('/seed-rooms', auth, async (req, res) => {
   try {
     const Room = require('../models/Room');
 
@@ -651,7 +675,7 @@ router.post('/seed-rooms', async (req, res) => {
 // @route   POST /api/admin/seed-rooms-v2
 // @desc    Seed room data (4 types with quantities) - NEW VERSION
 // @access  Private
-router.post('/seed-rooms-v2', async (req, res) => {
+router.post('/seed-rooms-v2', auth, async (req, res) => {
   try {
     const Room = require('../models/Room');
 
