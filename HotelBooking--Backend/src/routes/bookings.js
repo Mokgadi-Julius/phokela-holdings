@@ -14,8 +14,8 @@ const validateBooking = [
   body('primaryGuest.lastName').trim().isLength({ min: 2, max: 50 }).withMessage('Last name must be 2-50 characters'),
   body('primaryGuest.email').isEmail().withMessage('Valid email is required'),
   body('primaryGuest.phone').isMobilePhone('any').withMessage('Valid phone number is required'),
-  body('bookingDetails.adults').isInt({ min: 1, max: 20 }).withMessage('Adults must be 1-20'),
-  body('bookingDetails.children').isInt({ min: 0, max: 10 }).withMessage('Children must be 0-10')
+  body('bookingDetails.adults').isInt({ min: 1, max: 200 }).withMessage('Adults must be 1-200'),
+  body('bookingDetails.children').isInt({ min: 0, max: 50 }).withMessage('Children must be 0-50')
 ];
 
 // @route   GET /api/bookings
