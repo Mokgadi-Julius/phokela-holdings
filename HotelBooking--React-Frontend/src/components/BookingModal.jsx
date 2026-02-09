@@ -73,49 +73,20 @@ const BookingModal = ({ service, isOpen, onClose, bookingDetails }) => {
         primaryGuest: formData.primaryGuest,
         bookingDetails,
         specialRequests: formData.specialRequests,
+        bookingDetails,
+        specialRequests: formData.specialRequests,
         source: 'website',
+        bookingType: service?.category === 'accommodation' ? 'room' : 'service',
       };
 
-      try {
-        const response = await bookingsAPI.create(bookingData);
+      const response = await bookingsAPI.create(bookingData);
 
-        if (response.success) {
-          setSuccess(true);
-          setBookingReference(response.data.bookingReference);
-          setBookingId(response.data.id);
-          setBookingAmount(response.data.pricing?.totalAmount || 0);
-          return;
-        }
-      } catch (apiErr) {
-        console.warn('API failed to create booking, saving locally...', apiErr);
-        
-        // Save to local storage
-        const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
-        const ref = 'PH' + new Date().toISOString().slice(2,10).replace(/-/g, '') + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        const price = service.price || 0;
-        
-        const newBooking = {
-          ...bookingData,
-          id: 'local-' + Date.now(),
-          bookingReference: ref,
-          status: 'pending',
-          paymentStatus: 'pending',
-          createdAt: new Date().toISOString(),
-          serviceSnapshot: {
-            name: service.name,
-            category: service.category || 'accommodation'
-          },
-          pricing: {
-            totalAmount: price
-          }
-        };
-        
-        localStorage.setItem('local_bookings', JSON.stringify([...localBookings, newBooking]));
-        
+      if (response.success) {
         setSuccess(true);
-        setBookingReference(ref);
-        setBookingId(newBooking.id);
-        setBookingAmount(price);
+        setBookingReference(response.data.bookingReference);
+        setBookingId(response.data.id);
+        setBookingAmount(response.data.pricing?.totalAmount || 0);
+        // Don't auto-close - let user proceed to payment
       }
     } catch (err) {
       if (err instanceof APIError) {

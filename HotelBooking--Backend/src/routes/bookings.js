@@ -100,15 +100,17 @@ router.post('/', validateBooking, async (req, res) => {
   try {
     // Check if this is a room (accommodation) or service booking
     const serviceId = req.body.service;
+    const bookingType = req.body.bookingType || (req.body.serviceSnapshot?.category === 'accommodation' ? 'room' : 'service');
+
     let service;
     let isRoom = false;
 
-    // First try to find in Room table (for accommodation)
-    service = await Room.findByPk(serviceId);
-    if (service) {
+    if (bookingType === 'room' || bookingType === 'accommodation') {
+      // It's a room booking
+      service = await Room.findByPk(serviceId);
       isRoom = true;
     } else {
-      // If not found in Room table, try Service table
+      // It's a service booking (catering, events, etc.)
       service = await Service.findByPk(serviceId);
       isRoom = false;
     }
