@@ -147,7 +147,19 @@ router.post('/', validateBooking, async (req, res) => {
       const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
       basePrice = service.price * (nights > 0 ? nights : 1);
     } else if (category === 'catering') {
-      basePrice = service.price * totalGuests;
+      // Check if price is per person or fixed
+      const isPerPerson = service.priceUnit && (
+        service.priceUnit.toLowerCase().includes('person') ||
+        service.priceUnit.toLowerCase().includes('guest') ||
+        service.priceUnit.toLowerCase().includes('pp') ||
+        service.priceUnit.toLowerCase().includes('head')
+      );
+
+      if (isPerPerson) {
+        basePrice = service.price * totalGuests;
+      } else {
+        basePrice = service.price;
+      }
     }
 
     // Generate booking reference
