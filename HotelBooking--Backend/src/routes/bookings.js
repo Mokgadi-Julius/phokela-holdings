@@ -175,7 +175,10 @@ router.post('/', validateBooking, async (req, res) => {
 
     const newBooking = await Booking.create({
       bookingReference,
-      serviceId: service.id,
+      // If it's a room booking, set roomId and leave serviceId null (if allowed) or handle properly
+      // Note: serviceId must be nullable in the DB for this to work perfectly without a dummy service
+      serviceId: isRoom ? null : service.id,
+      roomId: isRoom ? service.id : null,
       serviceSnapshot,
       primaryGuest: req.body.primaryGuest,
       additionalGuests: req.body.additionalGuests || [],
@@ -187,14 +190,14 @@ router.post('/', validateBooking, async (req, res) => {
 
     // Send confirmation email
     try {
-        await sendEmail({
-            to: newBooking.primaryGuest.email,
-            subject: `Booking Confirmation - ${newBooking.bookingReference}`,
-            template: 'booking-confirmation',
-            data: { booking: newBooking.toJSON(), service: service.toJSON() }
-        });
+      await sendEmail({
+        to: newBooking.primaryGuest.email,
+        subject: `Booking Confirmation - ${newBooking.bookingReference}`,
+        template: 'booking-confirmation',
+        data: { booking: newBooking.toJSON(), service: service.toJSON() }
+      });
     } catch (emailError) {
-        console.error('Failed to send confirmation email:', emailError);
+      console.error('Failed to send confirmation email:', emailError);
     }
 
     res.status(201).json({ success: true, message: 'Booking created successfully', data: newBooking });

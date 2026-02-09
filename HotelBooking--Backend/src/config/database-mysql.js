@@ -31,10 +31,12 @@ const connectDB = async () => {
     console.log(`🔗 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}`);
 
     // Initialize all models with relationships
-    
+
 
     // Sync all models
-    await sequelize.sync({ force: false });
+    // Using alter: true ensures that schema changes (like adding columns) are applied to the database
+    // This is critical for fixing the bookings table schema (adding roomId, nullifying serviceId)
+    await sequelize.sync({ force: false, alter: true });
     console.log('✅ Database models synchronized');
 
     return sequelize;

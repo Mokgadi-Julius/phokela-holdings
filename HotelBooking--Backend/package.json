@@ -10,7 +10,8 @@
     "seed": "node src/scripts/seed-mysql.js",
     "seed:admin": "node src/scripts/seed-admin.js",
     "setup-db": "node setup-database.js",
-    "setup-db:force": "node setup-database.js --force"
+    "setup-db:force": "node setup-database.js --force",
+    "db:update": "node src/scripts/update-schema.js"
   },
   "keywords": [],
   "author": "",
