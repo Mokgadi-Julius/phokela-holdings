@@ -61,13 +61,52 @@ const Bookings = () => {
     try {
       if (!isManualRefresh) setLoading(true);
       setError(null);
-      const response = await bookingsAPI.getAll(filters);
-      if (response.success) {
-        setBookings(response.data);
-        setPagination(response.pagination);
+      
+      let apiBookings = [];
+      let apiPagination = null;
+      
+      try {
+        const response = await bookingsAPI.getAll(filters);
+        if (response.success) {
+          apiBookings = response.data;
+          apiPagination = response.pagination;
+        }
+      } catch (apiErr) {
+        // Silently relying on local storage
+      }
+
+      // Load from local storage
+      const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
+      
+      // Combine and sort by createdAt descending
+      const combined = [...apiBookings, ...localBookings].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      // Filter by status if needed (since local storage doesn't have server-side filtering)
+      let filtered = combined;
+      if (filters.status) {
+        filtered = filtered.filter(b => b.status === filters.status);
+      }
+      if (filters.category) {
+        filtered = filtered.filter(b => b.serviceSnapshot?.category === filters.category);
+      }
+
+      setBookings(filtered);
+      
+      if (apiPagination) {
+        setPagination(apiPagination);
+      } else {
+        // Mock pagination for local data
+        setPagination({
+          page: filters.page,
+          limit: filters.limit,
+          total: filtered.length,
+          pages: Math.ceil(filtered.length / filters.limit)
+        });
       }
     } catch (err) {
-      setError('Failed to load bookings. Make sure the backend server is running and the database is connected.');
+      setError('Failed to process bookings data.');
       console.error('Bookings error:', err);
     } finally {
       setLoading(false);
@@ -78,23 +117,44 @@ const Bookings = () => {
     if (!selectedBooking || !newStatus) return;
 
     try {
-      const response = await bookingsAPI.updateStatus(
-        selectedBooking.id,
-        newStatus,
-        statusNotes
-      );
+      try {
+        if (!String(selectedBooking.id).startsWith('local-')) {
+          const response = await bookingsAPI.updateStatus(
+            selectedBooking.id,
+            newStatus,
+            statusNotes
+          );
 
-      if (response.success) {
-        // Update the booking in the list
-        setBookings(bookings.map(b =>
-          b.id === selectedBooking.id ? response.data : b
-        ));
-        broadcastUpdate();
-        setShowStatusModal(false);
-        setSelectedBooking(null);
-        setNewStatus('');
-        setStatusNotes('');
+          if (response.success) {
+            setBookings(bookings.map(b =>
+              b.id === selectedBooking.id ? response.data : b
+            ));
+            broadcastUpdate();
+            setShowStatusModal(false);
+            setSelectedBooking(null);
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API status update failed, fallback to local');
       }
+
+      // Update in local storage
+      const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
+      const updated = localBookings.map(b => 
+        b.id === selectedBooking.id ? { ...b, status: newStatus } : b
+      );
+      
+      // If not in local storage (it was an API booking), add it
+      if (!localBookings.find(b => b.id === selectedBooking.id)) {
+        updated.push({ ...selectedBooking, status: newStatus });
+      }
+      
+      localStorage.setItem('local_bookings', JSON.stringify(updated));
+      await fetchBookings();
+      broadcastUpdate();
+      setShowStatusModal(false);
+      setSelectedBooking(null);
     } catch (err) {
       alert('Failed to update booking status');
       console.error('Status update error:', err);
@@ -105,23 +165,39 @@ const Bookings = () => {
     if (!selectedBooking || !paymentData.paymentStatus) return;
 
     try {
-      const response = await bookingsAPI.updatePayment(selectedBooking.id, paymentData);
+      try {
+        if (!String(selectedBooking.id).startsWith('local-')) {
+          const response = await bookingsAPI.updatePayment(selectedBooking.id, paymentData);
 
-      if (response.success) {
-        // Update the booking in the list
-        setBookings(bookings.map(b =>
-          b.id === selectedBooking.id ? response.data : b
-        ));
-        broadcastUpdate();
-        setShowPaymentModal(false);
-        setSelectedBooking(null);
-        setPaymentData({
-          paymentStatus: '',
-          paymentMethod: '',
-          amount: '',
-          reference: ''
-        });
+          if (response.success) {
+            setBookings(bookings.map(b =>
+              b.id === selectedBooking.id ? response.data : b
+            ));
+            broadcastUpdate();
+            setShowPaymentModal(false);
+            setSelectedBooking(null);
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('API payment update failed, fallback to local');
       }
+
+      // Update in local storage
+      const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
+      const updated = localBookings.map(b => 
+        b.id === selectedBooking.id ? { ...b, paymentStatus: paymentData.paymentStatus } : b
+      );
+      
+      if (!localBookings.find(b => b.id === selectedBooking.id)) {
+        updated.push({ ...selectedBooking, paymentStatus: paymentData.paymentStatus });
+      }
+      
+      localStorage.setItem('local_bookings', JSON.stringify(updated));
+      await fetchBookings();
+      broadcastUpdate();
+      setShowPaymentModal(false);
+      setSelectedBooking(null);
     } catch (err) {
       alert('Failed to update payment status');
       console.error('Payment update error:', err);
@@ -471,7 +547,7 @@ const Bookings = () => {
                       </div>
                     </td>
                   </tr>
-                ))}}
+                ))}
               </tbody>
             </table>
           </div>

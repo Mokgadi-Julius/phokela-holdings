@@ -42,10 +42,34 @@ const NewBooking = () => {
   const fetchRooms = async () => {
     try {
       setLoadingRooms(true);
-      const response = await roomsAPI.getAll();
-      if (response.success) {
-        setRooms(response.data);
+      
+      let apiRooms = [];
+      try {
+        const response = await roomsAPI.getAll();
+        if (response.success && response.data) {
+          apiRooms = response.data;
+        }
+      } catch (apiErr) {
+        // Silently relying on local storage
       }
+
+      // Load from local storage
+      const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+      
+      // Combine API and local rooms
+      const combined = [...apiRooms, ...localRooms];
+      
+      // Filter out rooms with no capacity/price if they are from static fallback (roomData)
+      // but only if combined is empty
+      if (combined.length > 0) {
+        setRooms(combined);
+      } else {
+        // Use static fallback as last resort
+        const { roomData } = await import('../../db/data');
+        setRooms(roomData);
+      }
+      
+      setError(null);
     } catch (err) {
       console.error('Failed to fetch rooms:', err);
       setError('Failed to load rooms. Please refresh the page.');
@@ -55,8 +79,8 @@ const NewBooking = () => {
   };
 
   const handleRoomSelect = (e) => {
-    const roomId = parseInt(e.target.value);
-    const room = rooms.find(r => r.id === roomId);
+    const roomId = e.target.value;
+    const room = rooms.find(r => String(r.id) === String(roomId));
     setSelectedRoom(room);
     setFormData({ ...formData, roomId });
   };
@@ -93,18 +117,58 @@ const NewBooking = () => {
         bookingDetails: {
           ...formData.bookingDetails,
           checkOut: checkOutDate.toISOString()
-        }
+        },
+        source: 'reception',
+        createdAt: new Date().toISOString()
       };
 
-      const response = await bookingsAPI.createRoomBooking(bookingData);
+      try {
+        const response = await bookingsAPI.createRoomBooking(bookingData);
 
-      if (response.success) {
-        // Broadcast that a new booking was created (Cross-tab)
+        if (response.success) {
+          // Broadcast that a new booking was created (Cross-tab)
+          const bookingChannel = new BroadcastChannel('booking_updates');
+          bookingChannel.postMessage('new_booking');
+          bookingChannel.close();
+
+          // Dispatch local event (Same-tab)
+          window.dispatchEvent(new Event('local_booking_update'));
+
+          setSuccess(true);
+          setTimeout(() => {
+            navigate('/admin/bookings');
+          }, 2000);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('Admin: API failed to create room booking, saving locally...', apiErr);
+        
+        // Save to local storage
+        const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
+        const ref = 'PHR' + new Date().toISOString().slice(2,10).replace(/-/g, '') + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const price = calculateTotal();
+        
+        const newBooking = {
+          ...bookingData,
+          id: 'local-' + Date.now(),
+          bookingReference: ref,
+          status: 'confirmed', // Reception bookings are usually confirmed immediately
+          paymentStatus: 'pending',
+          serviceSnapshot: {
+            name: selectedRoom?.name || 'Room',
+            category: 'accommodation'
+          },
+          pricing: {
+            totalAmount: price
+          }
+        };
+        
+        localStorage.setItem('local_bookings', JSON.stringify([...localBookings, newBooking]));
+        
+        // Broadcast update
         const bookingChannel = new BroadcastChannel('booking_updates');
         bookingChannel.postMessage('new_booking');
         bookingChannel.close();
-
-        // Dispatch local event (Same-tab)
         window.dispatchEvent(new Event('local_booking_update'));
 
         setSuccess(true);

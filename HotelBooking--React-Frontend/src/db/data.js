@@ -1,4 +1,4 @@
-import { FaWifi, FaCoffee, FaBath, FaParking, FaSwimmingPool, FaHotdog, FaStopwatch, FaCocktail } from 'react-icons/fa';
+import { FaWifi, FaCoffee, FaBath, FaParking, FaSwimmingPool, FaHotdog, FaStopwatch, FaCocktail, FaSnowflake, FaUtensils } from 'react-icons/fa';
 import images from '../assets';
 
 export const roomData = [
@@ -16,8 +16,9 @@ export const roomData = [
       { name: 'Breakfast Included', icon: FaHotdog },
       { name: 'Laundry Service', icon: FaStopwatch },
       { name: 'Welcome Refreshments', icon: FaCocktail },
+      { name: 'Fridge', icon: FaSnowflake },
+      { name: 'Microwave', icon: FaUtensils },
     ],
-    size: 25,
     maxPerson: 2,
     price: 850,
     image: images.Room1Img,
@@ -37,8 +38,9 @@ export const roomData = [
       { name: 'Continental Breakfast', icon: FaHotdog },
       { name: 'Daily Housekeeping', icon: FaStopwatch },
       { name: 'Mini Bar', icon: FaCocktail },
+      { name: 'Fridge', icon: FaSnowflake },
+      { name: 'Microwave', icon: FaUtensils },
     ],
-    size: 45,
     maxPerson: 3,
     price: 1250,
     image: images.Room2Img,
@@ -48,7 +50,7 @@ export const roomData = [
     id: 3,
     name: 'Conference Package',
     description:
-      'Professional meeting space with state-of-the-art audio-visual equipment. Perfect for corporate meetings, workshops, and seminars. Includes refreshments, stationery, and technical support for a seamless business experience.',
+      'Professional meeting space with state-of-the-art audio-visual equipment. Perfect for corporate meetings, workshops, and seminars. Includes refreshments, stationery, and technical support. Requires 48hrs notice.',
     facilities: [
       { name: 'High-Speed WiFi', icon: FaWifi },
       { name: 'Tea & Coffee Breaks', icon: FaCoffee },
@@ -59,7 +61,6 @@ export const roomData = [
       { name: 'AV Equipment', icon: FaStopwatch },
       { name: 'Welcome Drinks', icon: FaCocktail },
     ],
-    size: 60,
     maxPerson: 25,
     price: 2500,
     image: images.Room3Img,
@@ -69,7 +70,7 @@ export const roomData = [
     id: 4,
     name: 'Event Hosting Package',
     description:
-      'Make your special occasions memorable with our comprehensive event hosting services. From intimate gatherings to grand celebrations, we provide venue, catering, and coordination for weddings, birthdays, and corporate functions.',
+      'Make your special occasions memorable with our comprehensive event hosting services. From intimate gatherings to grand celebrations, we provide venue, catering, and coordination for birthdays and corporate functions.',
     facilities: [
       { name: 'Event WiFi', icon: FaWifi },
       { name: 'Full Catering', icon: FaCoffee },
@@ -80,7 +81,6 @@ export const roomData = [
       { name: 'Event Coordination', icon: FaStopwatch },
       { name: 'Bar Service', icon: FaCocktail },
     ],
-    size: 150,
     maxPerson: 80,
     price: 15000,
     image: images.Room4Img,
@@ -90,18 +90,16 @@ export const roomData = [
     id: 5,
     name: 'Catering Services',
     description:
-      'Professional catering for all occasions. Our experienced chefs prepare delicious meals using fresh, local ingredients. Perfect for corporate events, weddings, parties, and daily meal requirements for guest house visitors.',
+      'Professional catering for all occasions. Our experienced chefs prepare delicious meals using fresh, local ingredients. Perfect for corporate events and parties.',
     facilities: [
       { name: 'Menu Consultation', icon: FaWifi },
       { name: 'Fresh Ingredients', icon: FaCoffee },
       { name: 'Kitchen Facilities', icon: FaBath },
       { name: 'Delivery Service', icon: FaParking },
       { name: 'Outdoor Catering', icon: FaSwimmingPool },
-      { name: 'Custom Menus', icon: FaHotdog },
       { name: 'Professional Staff', icon: FaStopwatch },
       { name: 'Beverage Service', icon: FaCocktail },
     ],
-    size: 0,
     maxPerson: 100,
     price: 350,
     image: images.Room5Img,
@@ -122,7 +120,6 @@ export const roomData = [
       { name: 'Babysitting', icon: FaStopwatch },
       { name: 'Family Games', icon: FaCocktail },
     ],
-    size: 65,
     maxPerson: 6,
     price: 1800,
     image: images.Room6Img,
@@ -142,8 +139,9 @@ export const roomData = [
       { name: 'Room Service', icon: FaHotdog },
       { name: 'Concierge Service', icon: FaStopwatch },
       { name: 'Premium Bar', icon: FaCocktail },
+      { name: 'Fridge', icon: FaSnowflake },
+      { name: 'Microwave', icon: FaUtensils },
     ],
-    size: 75,
     maxPerson: 4,
     price: 2200,
     image: images.Room7Img,
@@ -164,7 +162,6 @@ export const roomData = [
       { name: 'Business Services', icon: FaStopwatch },
       { name: 'Networking Area', icon: FaCocktail },
     ],
-    size: 40,
     maxPerson: 12,
     price: 3500,
     image: images.Room8Img,

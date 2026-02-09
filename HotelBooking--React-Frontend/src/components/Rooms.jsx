@@ -37,6 +37,12 @@ const Rooms = () => {
             )
           }
         </div>
+        
+        <div className="text-center mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-100 max-w-2xl mx-auto">
+          <p className="text-gray-700 font-medium">
+            <span className="text-accent font-bold">Note:</span> Conference bookings require 48 hours notice.
+          </p>
+        </div>
       </div>
 
     </section>

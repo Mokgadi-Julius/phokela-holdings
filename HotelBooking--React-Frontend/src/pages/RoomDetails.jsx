@@ -16,7 +16,7 @@ const RoomDetails = () => {
   const { id } = useParams(); // id get form url (/room/:id) as string...
   const { rooms } = useRoomContext();
 
-  const room = rooms.find(room => room.id === +id);
+  const room = rooms.find(room => String(room.id) === String(id));
 
   // for (const key in room) {
   //   console.log(key);

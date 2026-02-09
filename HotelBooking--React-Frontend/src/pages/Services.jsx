@@ -1,42 +1,61 @@
 import { ScrollToTop } from '../components';
 import { Link } from 'react-router-dom';
+import { servicesAPI } from '../services/api';
+import { roomData } from '../db/data';
 import images from '../assets';
+import { useState, useEffect } from 'react';
 
 const Services = () => {
-  const services = [
-    {
-      id: 'accommodation',
-      name: 'Accommodation',
-      description: 'Comfortable rooms and suites for your stay',
-      image: images.Room1Img,
-      link: '/accommodation',
-      icon: '🏨'
-    },
-    {
-      id: 'conference',
-      name: 'Conference',
-      description: 'Modern facilities for meetings and conferences',
-      image: images.Room3Img,
-      link: '/conference',
-      icon: '🏢'
-    },
-    {
-      id: 'catering',
-      name: 'Catering',
-      description: 'Delicious meals and catering services',
-      image: images.Slider2,
-      link: '/catering',
-      icon: '🍽️'
-    },
-    {
-      id: 'events',
-      name: 'Events',
-      description: 'Host memorable events and celebrations',
-      image: images.Slider3,
-      link: '/events',
-      icon: '🎉'
+  const [dynamicServices, setDynamicServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      let apiServices = [];
+      try {
+        const response = await servicesAPI.getAll();
+        if (response.success && response.data) {
+          apiServices = response.data;
+        }
+      } catch (apiErr) {
+        console.warn('Services API failed, using local fallback');
+      }
+
+      const localServices = JSON.parse(localStorage.getItem('local_services') || '[]');
+      
+      const combined = [...apiServices, ...localServices];
+      
+      if (combined.length > 0) {
+        // Map to the structure expected by the render logic
+        const mapped = combined.map(s => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          image: s.images?.thumbnail || s.images?.gallery?.[0] || images.Room1Img,
+          link: `/${s.category}`,
+          icon: s.category === 'catering' ? '🍽️' : s.category === 'conference' ? '🏢' : '🎉',
+          category: s.category
+        }));
+        setDynamicServices(mapped);
+      } else {
+        // Fallback to the original static list if no dynamic data exists
+        setDynamicServices([
+          { id: 'accommodation', name: 'Accommodation', description: 'Comfortable rooms and suites for your stay', image: images.Room1Img, link: '/accommodation', icon: '🏨' },
+          { id: 'conference', name: 'Conference', description: 'Modern facilities for meetings and conferences', image: images.Room3Img, link: '/conference', icon: '🏢' },
+          { id: 'catering', name: 'Catering', description: 'Delicious meals and catering services', image: images.Slider2, link: '/catering', icon: '🍽️' },
+          { id: 'events', name: 'Events', description: 'Host memorable events and celebrations', image: images.Slider3, link: '/events', icon: '🎉' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const serviceHighlights = [
     {
@@ -107,32 +126,38 @@ const Services = () => {
         {/* Services Grid */}
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>Explore Our Services</h2>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-            {services.map((service) => (
-              <div key={service.id} className='bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300'>
-                <div className='relative h-64'>
-                  <img
-                    src={service.image}
-                    alt={service.name}
-                    className='w-full h-full object-cover'
-                  />
-                  <div className='absolute top-4 left-4 bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold'>
-                    {service.icon} {service.name}
+          {loading ? (
+            <div className='text-center py-12'>
+              <div className='inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent'></div>
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+              {dynamicServices.map((service) => (
+                <div key={service.id} className='bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300'>
+                  <div className='relative h-64'>
+                    <img
+                      src={service.image}
+                      alt={service.name}
+                      className='w-full h-full object-cover'
+                    />
+                    <div className='absolute top-4 left-4 bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold'>
+                      {service.icon} {service.name}
+                    </div>
+                  </div>
+                  <div className='p-6'>
+                    <h3 className='font-primary text-[24px] mb-3'>{service.name}</h3>
+                    <p className='text-gray-600 mb-6'>{service.description}</p>
+                    <Link
+                      to={service.link}
+                      className='w-full bg-accent text-white px-6 py-3 rounded-lg hover:bg-accent/90 transition duration-300 text-center block font-semibold'
+                    >
+                      Explore {service.name}
+                    </Link>
                   </div>
                 </div>
-                <div className='p-6'>
-                  <h3 className='font-primary text-[24px] mb-3'>{service.name}</h3>
-                  <p className='text-gray-600 mb-6'>{service.description}</p>
-                  <Link
-                    to={service.link}
-                    className='w-full bg-accent text-white px-6 py-3 rounded-lg hover:bg-accent/90 transition duration-300 text-center block font-semibold'
-                  >
-                    Explore {service.name}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Service Categories */}

@@ -57,15 +57,22 @@ const AdminLayout = () => {
 
   const fetchNotifications = async () => {
     try {
-      console.log('🔔 Fetching notifications...');
-      const response = await adminAPI.getDashboard();
-      if (response.success) {
+      // Wrap the specific API call to catch errors immediately and silently
+      let response;
+      try {
+        response = await adminAPI.getDashboard();
+      } catch (e) {
+        // Just return if API fails
+        return;
+      }
+
+      if (response && response.success) {
         // Get already seen IDs from localStorage
         const seenIdsString = localStorage.getItem('seenNotificationIds');
         const seenIds = seenIdsString ? JSON.parse(seenIdsString) : [];
         
         // Use recent bookings as notifications
-        const recent = response.data.recentBookings || [];
+        const recent = response.data?.recentBookings || [];
         const mappedNotifications = recent.map(b => {
           const itemName = b.serviceSnapshot?.name || b.service?.name || b.room?.name || 'a room';
           const isRead = seenIds.includes(b.id);
@@ -73,7 +80,7 @@ const AdminLayout = () => {
           return {
             id: b.id,
             title: 'New Booking',
-            message: `${b.primaryGuest.firstName} booked ${itemName}`,
+            message: `${b.primaryGuest?.firstName || 'Guest'} booked ${itemName}`,
             time: new Date(b.createdAt).toLocaleTimeString(),
             read: isRead,
             link: '/admin/bookings'
@@ -84,11 +91,10 @@ const AdminLayout = () => {
         
         // ONLY count those that are NOT in seenIds
         const newUnreadCount = mappedNotifications.filter(n => !n.read).length;
-        console.log(`🔔 Unread notifications: ${newUnreadCount}`);
         setUnreadCount(newUnreadCount);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      // Silently fail for notifications when backend is down
     }
   };
 

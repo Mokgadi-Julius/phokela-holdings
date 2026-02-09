@@ -25,7 +25,7 @@ const App = () => {
   return (
 
     <main className=''>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 
         <Routes>
           {/* Public Routes */}

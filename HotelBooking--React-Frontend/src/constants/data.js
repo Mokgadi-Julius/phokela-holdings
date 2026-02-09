@@ -41,21 +41,35 @@ export const sliderData = [
         btnNext: 'Contact Us Today',
         link: '/contact'
     },
+    {
+        id: 4,
+        title: 'Experience Phokela Hospitality',
+        bg: images.Slider4,
+        btnNext: 'Our Services',
+        link: '/services'
+    },
+    {
+        id: 5,
+        title: 'Professional Events & Hosting',
+        bg: images.Slider5,
+        btnNext: 'Book Venue',
+        link: '/events'
+    },
 ]
 
 
 export const guestHouseRules = [
     {
-        rules: 'Check-in : 2:00 PM - 8:00 PM',
+        rules: 'Check-in : 15:00 - 22:00',
     },
     {
-        rules: 'Check-out : 11:00 AM',
+        rules: 'Check-out : 10:00 AM',
     },
     {
         rules: 'Smoking in designated areas only',
     },
     {
-        rules: 'Pets allowed with prior arrangement',
+        rules: 'No pets allowed',
     },
     {
         rules: 'Quiet hours : 10:00 PM - 7:00 AM',

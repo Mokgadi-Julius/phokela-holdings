@@ -58,12 +58,22 @@ const Rooms = () => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await roomsAPI.getAll();
-      if (response.success) {
-        setRooms(response.data || []);
+      
+      let apiRooms = [];
+      try {
+        const response = await roomsAPI.getAll();
+        if (response.success && response.data) {
+          apiRooms = response.data;
+        }
+      } catch (apiErr) {
+        console.warn('Admin: Rooms API fetch failed, relying on local data');
       }
+
+      const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+      setRooms([...apiRooms, ...localRooms]);
+      setError(null);
     } catch (err) {
-      setError('Failed to load rooms');
+      setError('Failed to process rooms data');
       console.error('Rooms error:', err);
     } finally {
       setLoading(false);
@@ -94,17 +104,14 @@ const Rooms = () => {
     const files = Array.from(e.target.files);
     setImageFiles(files);
 
-    // Create preview URLs
     const previews = files.map((file) => URL.createObjectURL(file));
     setImagePreview(previews);
 
-    // Auto-upload images immediately to get URLs for main image selection
     if (files.length > 0) {
       setUploadingImages(true);
       try {
         const uploadedUrls = await uploadImages(files);
         setUploadedImageUrls(uploadedUrls);
-        // Set first image as main by default
         if (!formData.mainImage && uploadedUrls.length > 0) {
           setFormData({ ...formData, mainImage: uploadedUrls[0], images: uploadedUrls });
         } else {
@@ -128,8 +135,8 @@ const Rooms = () => {
         alert('Please enter a valid price');
         return;
       }
-      // Prepare form data for submission
-      const roomData = {
+      
+      const roomDataObj = {
         ...formData,
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
@@ -137,20 +144,47 @@ const Rooms = () => {
         totalQuantity: parseInt(formData.totalQuantity),
       };
 
-      // Images are already uploaded from handleImageChange
-      // Just ensure we have the URLs
       if (uploadedImageUrls.length > 0) {
-        roomData.images = uploadedImageUrls;
+        roomDataObj.images = uploadedImageUrls;
       }
 
-      let response;
-      if (editingRoom) {
-        response = await roomsAPI.update(editingRoom.id || editingRoom._id, roomData);
-      } else {
-        response = await roomsAPI.create(roomData);
-      }
+      try {
+        let response;
+        if (editingRoom && !String(editingRoom.id).startsWith('local-')) {
+          response = await roomsAPI.update(editingRoom.id || editingRoom._id, roomDataObj);
+        } else if (!editingRoom) {
+          response = await roomsAPI.create(roomDataObj);
+        } else {
+          throw new Error('Local room update');
+        }
 
-      if (response.success) {
+        if (response.success) {
+          await fetchRooms();
+          handleCloseModal();
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('API failed to save room, saving locally...', apiErr);
+        
+        const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+        
+        if (editingRoom) {
+          const updatedLocal = localRooms.map(r => 
+            r.id === editingRoom.id ? { ...roomDataObj, id: r.id } : r
+          );
+          if (!localRooms.find(r => r.id === editingRoom.id)) {
+            updatedLocal.push({ ...roomDataObj, id: editingRoom.id });
+          }
+          localStorage.setItem('local_rooms', JSON.stringify(updatedLocal));
+        } else {
+          const newRoom = {
+            ...roomDataObj,
+            id: 'local-' + Date.now(),
+            availability: true
+          };
+          localStorage.setItem('local_rooms', JSON.stringify([...localRooms, newRoom]));
+        }
+        
         await fetchRooms();
         handleCloseModal();
       }
@@ -190,7 +224,6 @@ const Rooms = () => {
       mainImage: room.mainImage || '',
       images: room.images || [],
     });
-    // Convert backend image URLs to full URLs for preview
     const imageUrls = getImageUrls(room.images || []);
     setImagePreview(imageUrls);
     setUploadedImageUrls(room.images || []);
@@ -200,10 +233,22 @@ const Rooms = () => {
   const handleDelete = async (roomId) => {
     if (window.confirm('Are you sure you want to delete this room?')) {
       try {
-        const response = await roomsAPI.delete(roomId);
-        if (response.success) {
-          await fetchRooms();
+        if (!String(roomId).startsWith('local-')) {
+          try {
+            const response = await roomsAPI.delete(roomId);
+            if (response.success) {
+              await fetchRooms();
+              return;
+            }
+          } catch (apiErr) {
+            console.warn('API delete failed, checking local');
+          }
         }
+        
+        const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+        const filtered = localRooms.filter(r => r.id !== roomId);
+        localStorage.setItem('local_rooms', JSON.stringify(filtered));
+        await fetchRooms();
       } catch (err) {
         setError(err.message || 'Failed to delete room');
         console.error('Delete room error:', err);
@@ -213,13 +258,32 @@ const Rooms = () => {
 
   const handleToggleAvailability = async (room) => {
     try {
-      const response = await roomsAPI.toggleAvailability(room.id || room._id);
-      if (response.success) {
-        // Update the room in the list
-        setRooms(rooms.map(r =>
-          (r.id || r._id) === (room.id || room._id) ? response.data : r
-        ));
+      const roomId = room.id || room._id;
+      if (!String(roomId).startsWith('local-')) {
+        try {
+          const response = await roomsAPI.toggleAvailability(roomId);
+          if (response.success) {
+            setRooms(rooms.map(r =>
+              (r.id || r._id) === roomId ? response.data : r
+            ));
+            return;
+          }
+        } catch (apiErr) {
+          console.warn('API toggle failed, checking local');
+        }
       }
+      
+      const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+      const updated = localRooms.map(r => 
+        r.id === roomId ? { ...r, availability: !r.availability } : r
+      );
+      
+      if (!localRooms.find(r => r.id === roomId)) {
+        updated.push({ ...room, id: roomId, availability: !room.availability });
+      }
+      
+      localStorage.setItem('local_rooms', JSON.stringify(updated));
+      await fetchRooms();
     } catch (err) {
       setError(err.message || 'Failed to toggle availability');
       console.error('Toggle availability error:', err);
@@ -259,7 +323,6 @@ const Rooms = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Rooms Management</h1>
@@ -276,7 +339,6 @@ const Rooms = () => {
         </button>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
@@ -289,7 +351,6 @@ const Rooms = () => {
         </div>
       )}
 
-      {/* Rooms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms.length === 0 ? (
           <div className="col-span-full bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
@@ -301,7 +362,6 @@ const Rooms = () => {
         ) : (
           rooms.map((room) => (
             <div key={room.id || room._id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition">
-              {/* Room Image */}
               <div className="h-48 bg-gray-200 relative">
                 {room.mainImage || (room.images && room.images.length > 0) ? (
                   <>
@@ -329,7 +389,6 @@ const Rooms = () => {
                 )}
               </div>
 
-              {/* Room Details */}
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-bold text-gray-900">{room.name}</h3>
@@ -358,16 +417,9 @@ const Rooms = () => {
                   <div className="font-bold text-blue-600">R{room.price}/night</div>
                   <div className="col-span-2 pt-2 border-t border-gray-200">
                     <span className="font-semibold text-gray-700">Quantity:</span> {room.totalQuantity || 1} total
-                    {room.bookedQuantity !== undefined && (
-                      <span className="ml-2">
-                        | <span className="text-green-600">{(room.totalQuantity || 1) - (room.bookedQuantity || 0)} available</span>
-                        {room.bookedQuantity > 0 && <span className="text-orange-600"> | {room.bookedQuantity} booked</span>}
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                {/* Amenities */}
                 {room.amenities && room.amenities.length > 0 && (
                   <div className="mb-3">
                     <div className="flex flex-wrap gap-1">
@@ -385,7 +437,6 @@ const Rooms = () => {
                   </div>
                 )}
 
-                {/* Actions */}
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(room)}
@@ -406,7 +457,6 @@ const Rooms = () => {
         )}
       </div>
 
-      {/* Add/Edit Room Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -425,7 +475,6 @@ const Rooms = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -477,7 +526,6 @@ const Rooms = () => {
                 />
               </div>
 
-              {/* Room Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -526,9 +574,7 @@ const Rooms = () => {
                 </div>
               </div>
 
-              {/* Quantity Management */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-blue-900 mb-3">Room Quantity Management</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -543,48 +589,10 @@ const Rooms = () => {
                       min="1"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Total rooms of this type available
-                    </p>
                   </div>
-                  {editingRoom && editingRoom.bookedQuantity !== undefined && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Currently Booked
-                        </label>
-                        <div className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
-                          {editingRoom.bookedQuantity || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Rooms currently reserved
-                        </p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Available
-                        </label>
-                        <div className="px-4 py-2 bg-green-100 border border-green-300 rounded-lg text-green-700 font-semibold">
-                          {Math.max(0, parseInt(formData.totalQuantity) - (editingRoom.bookedQuantity || 0))}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Rooms available for booking
-                        </p>
-                      </div>
-                    </>
-                  )}
                 </div>
-                {editingRoom && parseInt(formData.totalQuantity) < (editingRoom.bookedQuantity || 0) && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800">
-                      Warning: Total quantity cannot be less than currently booked quantity ({editingRoom.bookedQuantity}).
-                      Please cancel some bookings first.
-                    </p>
-                  </div>
-                )}
               </div>
 
-              {/* Amenities */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Amenities
@@ -607,7 +615,6 @@ const Rooms = () => {
                 </div>
               </div>
 
-              {/* Images */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Room Images
@@ -619,74 +626,28 @@ const Rooms = () => {
                   onChange={handleImageChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Upload multiple images. The first image will be set as the main cover image by default.
-                </p>
-
                 {uploadingImages && (
                   <div className="mt-4 flex items-center justify-center p-4 bg-blue-50 rounded-lg">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
                     <span className="text-blue-700">Uploading images...</span>
                   </div>
                 )}
-
                 {imagePreview.length > 0 && !uploadingImages && (
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Select Main/Cover Image
-                    </label>
-                    <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-                      {imagePreview.map((preview, idx) => {
-                        const imageUrl = uploadedImageUrls[idx];
-                        const isMain = formData.mainImage === imageUrl;
-                        return (
-                          <div key={idx} className="relative">
-                            <div className={`relative aspect-video rounded-lg overflow-hidden border-2 ${isMain ? 'border-blue-500' : 'border-gray-200'}`}>
-                              <img
-                                src={preview}
-                                alt={`Preview ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              {isMain && (
-                                <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                                  Main
-                                </div>
-                              )}
-                            </div>
-                            <label className="flex items-center justify-center mt-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="mainImage"
-                                checked={isMain}
-                                onChange={() => setFormData({ ...formData, mainImage: imageUrl })}
-                                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="ml-2 text-xs text-gray-700">
-                                {isMain ? 'Cover Image' : 'Set as Cover'}
-                              </span>
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="mt-4 grid grid-cols-3 md:grid-cols-4 gap-4">
+                    {imagePreview.map((preview, idx) => (
+                      <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Form Actions */}
               <div className="flex space-x-4 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                >
+                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={uploadingImages}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <button type="submit" disabled={uploadingImages} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
                   {uploadingImages ? 'Uploading...' : editingRoom ? 'Update Room' : 'Create Room'}
                 </button>
               </div>

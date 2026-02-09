@@ -207,7 +207,7 @@ const Contact = () => {
           <h2 className='font-primary text-[22px] sm:text-[26px] lg:text-[30px] mb-6 text-center'>Find Us</h2>
           <div className='rounded-lg overflow-hidden shadow-lg'>
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3584.8995959631353!2d28.0376!3d-26.2041!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e950c0b8c0b8c0b%3A0x1e950c0b8c0b8c0b!2sVan%20Riebeck%20Ave%20%26%20Dudu%20Madisha%20Dr%2C%20Johannesburg%2C%20South%20Africa!5e0!3m2!1sen!2sza!4v1640995200000!5m2!1sen!2sza"
+              src="https://maps.google.com/maps?q=108%20Cnr%20VAN%20RIEBECK%20%26%20DUDU%20MADISHA%20DRIVE&t=&z=15&ie=UTF8&iwloc=&output=embed"
               width="100%"
               height="300"
               className="sm:h-[400px]"

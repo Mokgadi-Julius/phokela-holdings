@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { roomsAPI } from "../services/api";
+import { roomData } from "../db/data";
 
 const RoomInfo = createContext();
 
@@ -18,11 +19,40 @@ export const RoomContext = ({ children }) => {
   const fetchRooms = async (filters = {}) => {
     setLoading(true);
     try {
-      const res = await roomsAPI.getAll(filters);
-      setRooms(res.data);
+      let apiRooms = [];
+      try {
+        const res = await roomsAPI.getAll(filters);
+        if (res.data) {
+          apiRooms = res.data;
+        }
+      } catch (apiErr) {
+        // Silently fallback to local storage
+      }
+
+      // Load from local storage
+      const localRooms = JSON.parse(localStorage.getItem('local_rooms') || '[]');
+      
+      // Merge sources
+      const combined = [...apiRooms, ...localRooms];
+
+      if (combined.length > 0) {
+        let data = combined;
+        if (filters.minPerson) {
+          data = data.filter(r => (r.capacity || r.maxPerson) >= filters.minPerson);
+        }
+        setRooms(data);
+      } else {
+        // Fallback to static roomData if no dynamic rooms exist
+        console.warn("No rooms in API or local storage, using static fallback");
+        let data = roomData;
+        if (filters.minPerson) {
+          data = data.filter(r => (r.capacity || r.maxPerson) >= filters.minPerson);
+        }
+        setRooms(data);
+      }
     } catch (error) {
-      console.error("Failed to fetch rooms:", error);
-      setRooms([]);
+      console.error("Failed to process rooms data:", error);
+      setRooms(roomData);
     }
     setLoading(false);
   };

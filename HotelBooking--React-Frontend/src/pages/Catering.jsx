@@ -1,6 +1,7 @@
 import { ScrollToTop } from '../components';
 import { Link } from 'react-router-dom';
 import { servicesAPI } from '../services/api';
+import { roomData } from '../db/data';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
@@ -18,12 +19,33 @@ const Catering = () => {
 
   const fetchCateringServices = async () => {
     try {
-      const response = await servicesAPI.getByCategory('catering');
-      if (response.success && response.data) {
-        setServices(response.data);
+      let apiServices = [];
+      try {
+        const response = await servicesAPI.getByCategory('catering');
+        if (response.success && response.data) {
+          apiServices = response.data;
+        }
+      } catch (apiErr) {
+        // Silently fallback to local storage if API fails
+      }
+
+      // Merge with local storage
+      const localServices = JSON.parse(localStorage.getItem('local_services') || '[]')
+        .filter(s => s.category === 'catering');
+      
+      const combined = [...apiServices, ...localServices];
+
+      if (combined.length > 0) {
+        setServices(combined);
+      } else {
+         // Fallback to static data
+         const cateringServices = roomData.filter(item => item.name.includes('Catering'));
+         setServices(cateringServices);
       }
     } catch (error) {
       console.error('Error fetching catering services:', error);
+      const cateringServices = roomData.filter(item => item.name.includes('Catering'));
+      setServices(cateringServices);
     } finally {
       setLoading(false);
     }
@@ -54,9 +76,9 @@ const Catering = () => {
         <div className='text-center mb-16'>
           <h2 className='font-primary text-[35px] mb-6'>Exceptional Culinary Experiences</h2>
           <p className='text-[18px] text-gray-600 max-w-[800px] mx-auto mb-8'>
-            At Phokela Guest House, we believe that great food brings people together. Our experienced chefs prepare delicious meals using fresh, locally-sourced ingredients. Whether you're hosting a corporate event, celebrating a special occasion, or need daily meal services, we have the perfect catering solution for you.
+            At Phokela Guest House, we believe that great food brings people together. Our experienced chefs prepare delicious meals using fresh, locally-sourced ingredients. Whether you're hosting a corporate event or celebrating a special occasion, we have the perfect catering solution for you.
           </p>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-8 mt-12'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 max-w-4xl mx-auto'>
             <div className='text-center'>
               <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
                 <span className='text-white text-2xl'>👨‍🍳</span>
@@ -70,13 +92,6 @@ const Catering = () => {
               </div>
               <h3 className='font-semibold text-[20px] mb-2'>Fresh Ingredients</h3>
               <p className='text-gray-600'>Locally-sourced, fresh ingredients for the best flavor and quality</p>
-            </div>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>🍽️</span>
-              </div>
-              <h3 className='font-semibold text-[20px] mb-2'>Custom Menus</h3>
-              <p className='text-gray-600'>Tailored menu options to suit your preferences and dietary needs</p>
             </div>
           </div>
         </div>
@@ -152,7 +167,7 @@ const Catering = () => {
                                 <svg className='w-4 h-4 mr-2 text-green-500 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
                                   <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
                                 </svg>
-                                {facility}
+                                {typeof facility === 'string' ? facility : facility.name}
                               </li>
                             ))}
                           </ul>

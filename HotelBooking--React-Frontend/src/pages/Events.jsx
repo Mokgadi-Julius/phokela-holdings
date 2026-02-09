@@ -1,6 +1,7 @@
 import { ScrollToTop } from '../components';
 import { Link } from 'react-router-dom';
 import { servicesAPI } from '../services/api';
+import { roomData } from '../db/data';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
@@ -18,12 +19,33 @@ const Events = () => {
 
   const fetchEventServices = async () => {
     try {
-      const response = await servicesAPI.getByCategory('events');
-      if (response.success && response.data) {
-        setServices(response.data);
+      let apiServices = [];
+      try {
+        const response = await servicesAPI.getByCategory('events');
+        if (response.success && response.data) {
+          apiServices = response.data;
+        }
+      } catch (apiErr) {
+        console.warn('Events API failed, using local fallback');
+      }
+
+      // Merge with local storage
+      const localServices = JSON.parse(localStorage.getItem('local_services') || '[]')
+        .filter(s => s.category === 'events');
+      
+      const combined = [...apiServices, ...localServices];
+
+      if (combined.length > 0) {
+        setServices(combined);
+      } else {
+         // Fallback
+         const eventServices = roomData.filter(item => item.name.includes('Event') || item.name.includes('Wedding'));
+         setServices(eventServices);
       }
     } catch (error) {
       console.error('Error fetching event services:', error);
+      const eventServices = roomData.filter(item => item.name.includes('Event') || item.name.includes('Wedding'));
+      setServices(eventServices);
     } finally {
       setLoading(false);
     }
@@ -141,14 +163,7 @@ const Events = () => {
                           </svg>
                           Max: {service.maxPerson} people
                         </div>
-                        {service.size > 0 && (
-                          <div className='flex items-center text-gray-600'>
-                            <svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5' />
-                            </svg>
-                            {service.size}m²
-                          </div>
-                        )}
+
                       </div>
 
                       {service.facilities && Array.isArray(service.facilities) && service.facilities.length > 0 && (
@@ -160,7 +175,7 @@ const Events = () => {
                                 <svg className='w-4 h-4 mr-2 text-green-500 flex-shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
                                   <path fillRule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clipRule='evenodd' />
                                 </svg>
-                                {String(facility)}
+                                {typeof facility === 'string' ? facility : facility.name}
                               </li>
                             ))}
                           </ul>

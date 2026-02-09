@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { servicesAPI } from '../../services/api';
 import { getImageUrl, getImageUrls } from '../../utils/imageHelpers';
+import { roomData } from '../../db/data';
 
 const Services = () => {
   const location = useLocation();
@@ -95,13 +96,42 @@ const Services = () => {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const response = await servicesAPI.getAll();
-      if (response.success) {
-        setServices(response.data || []);
+      
+      let apiServices = [];
+      try {
+        const response = await servicesAPI.getAll();
+        if (response.success && response.data) {
+          apiServices = response.data;
+        }
+      } catch (apiErr) {
+        // Silently relying on local data
       }
+
+      // Load from local storage
+      const localServices = JSON.parse(localStorage.getItem('local_services') || '[]');
+      
+      // Fallback roomData for services
+      const fallbackServices = roomData.filter(item => 
+        item.name.includes('Catering') || 
+        item.name.includes('Conference') || 
+        item.name.includes('Event')
+      );
+
+      // Merge all sources, preferring API > Local > Fallback (by ID or name)
+      // For simplicity, we'll just combine them and filter duplicates by name/id
+      const combined = [...apiServices, ...localServices];
+      
+      // If no dynamic services, use fallback roomData
+      if (combined.length === 0) {
+        setServices(fallbackServices);
+      } else {
+        setServices(combined);
+      }
+      
+      setError(null);
     } catch (err) {
-      setError('Failed to load services');
-      console.error('Services error:', err);
+      console.error('Admin: fetchServices error:', err);
+      setError('Failed to process services data');
     } finally {
       setLoading(false);
     }
@@ -195,25 +225,56 @@ const Services = () => {
         size: formData.size ? parseInt(formData.size) : 0,
       };
 
-      let response;
-      if (editingService) {
-        response = await servicesAPI.update(editingService.id, serviceData);
-      } else {
-        response = await servicesAPI.create(serviceData);
-      }
+      try {
+        let response;
+        if (editingService && !String(editingService.id).startsWith('local-')) {
+          response = await servicesAPI.update(editingService.id, serviceData);
+        } else if (!editingService) {
+          response = await servicesAPI.create(serviceData);
+        } else {
+          // This was a local service being edited, skip API and go to catch block for local update
+          throw new Error('Local service update');
+        }
 
-      if (response.success) {
+        if (response.success) {
+          await fetchServices();
+          handleCloseModal();
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('API failed to save service, saving locally...', apiErr);
+        
+        const localServices = JSON.parse(localStorage.getItem('local_services') || '[]');
+        
+        if (editingService) {
+          // Update existing local service or "convert" API service to local if update failed
+          const updatedLocal = localServices.map(s => 
+            s.id === editingService.id ? { ...serviceData, id: s.id } : s
+          );
+          
+          // If it wasn't in local storage (it was an API service), add it
+          if (!localServices.find(s => s.id === editingService.id)) {
+            updatedLocal.push({ ...serviceData, id: editingService.id });
+          }
+          
+          localStorage.setItem('local_services', JSON.stringify(updatedLocal));
+        } else {
+          // Create new local service
+          const newService = {
+            ...serviceData,
+            id: 'local-' + Date.now(),
+            availability: true
+          };
+          localStorage.setItem('local_services', JSON.stringify([...localServices, newService]));
+        }
+        
         await fetchServices();
         handleCloseModal();
       }
     } catch (err) {
       console.error('Save service error:', err);
-      const errorMessage = err.data && err.data.errors
-        ? err.data.errors.map(e => `${e.path || 'Field'}: ${e.msg}`).join('\n')
-        : (err.message || 'Failed to save service');
-      
-      setError(errorMessage);
-      alert('Error saving service:\n' + errorMessage);
+      setError(err.message || 'Failed to save service');
+      alert('Error saving service:\n' + (err.message || 'Unknown error'));
     }
   };
 
@@ -247,10 +308,23 @@ const Services = () => {
   const handleDelete = async (serviceId) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
       try {
-        const response = await servicesAPI.delete(serviceId);
-        if (response.success) {
-          await fetchServices();
+        if (!String(serviceId).startsWith('local-')) {
+          try {
+            const response = await servicesAPI.delete(serviceId);
+            if (response.success) {
+              await fetchServices();
+              return;
+            }
+          } catch (apiErr) {
+            console.warn('API delete failed, checking local storage');
+          }
         }
+        
+        // Remove from local storage
+        const localServices = JSON.parse(localStorage.getItem('local_services') || '[]');
+        const filtered = localServices.filter(s => s.id !== serviceId);
+        localStorage.setItem('local_services', JSON.stringify(filtered));
+        await fetchServices();
       } catch (err) {
         setError(err.message || 'Failed to delete service');
         console.error('Delete service error:', err);
@@ -260,12 +334,33 @@ const Services = () => {
 
   const handleToggleAvailability = async (service) => {
     try {
-      const response = await servicesAPI.toggleAvailability(service.id);
-      if (response.success) {
-        setServices(services.map(s =>
-          s.id === service.id ? response.data : s
-        ));
+      if (!String(service.id).startsWith('local-')) {
+        try {
+          const response = await servicesAPI.toggleAvailability(service.id);
+          if (response.success) {
+            setServices(services.map(s =>
+              s.id === service.id ? response.data : s
+            ));
+            return;
+          }
+        } catch (apiErr) {
+          console.warn('API toggle failed, falling back to local');
+        }
       }
+      
+      // Toggle in local storage
+      const localServices = JSON.parse(localStorage.getItem('local_services') || '[]');
+      const updated = localServices.map(s => 
+        s.id === service.id ? { ...s, availability: !s.availability } : s
+      );
+      
+      // If it wasn't in local storage (it was an API service), add it with toggled state
+      if (!localServices.find(s => s.id === service.id)) {
+        updated.push({ ...service, availability: !service.availability });
+      }
+      
+      localStorage.setItem('local_services', JSON.stringify(updated));
+      await fetchServices();
     } catch (err) {
       setError(err.message || 'Failed to toggle availability');
       console.error('Toggle availability error:', err);
@@ -437,7 +532,7 @@ const Services = () => {
 
                   <div className="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-600">
                     <div>Max: {service.maxPerson || 0} people</div>
-                    {service.size > 0 && <div>Size: {service.size} m²</div>}
+                    
                     <div className="col-span-2 font-bold text-blue-600 text-base">
                       R{service.price || 0} {String(service.priceUnit || 'per person')}
                     </div>
@@ -606,19 +701,7 @@ const Services = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Size (m²)
-                  </label>
-                  <input
-                    type="number"
-                    name="size"
-                    value={formData.size}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+
               </div>
 
               {/* Featured Toggle */}
