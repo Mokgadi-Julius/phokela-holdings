@@ -15,56 +15,34 @@ const PayFastButton = ({ bookingId, amount, bookingReference, onError, className
     try {
       setLoading(true);
 
-      try {
-        // Call backend to generate PayFast payment data
-        const response = await axios.post(`${API_URL}/payfast/initiate`, {
-          bookingId: bookingId
-        });
+      // Call backend to generate PayFast payment data
+      const response = await axios.post(`${API_URL}/payfast/initiate`, {
+        bookingId: bookingId
+      });
 
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Failed to initialize payment');
-        }
-
-        const { paymentUrl, paymentData } = response.data.data;
-
-        // Create and submit form programmatically
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = paymentUrl;
-        form.style.display = 'none';
-
-        // Add all payment data as hidden inputs
-        Object.keys(paymentData).forEach(key => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = paymentData[key];
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-        return;
-      } catch (apiErr) {
-        // Silently using simulated payment fallback...
-        
-        // Update local storage booking if it exists
-        const localBookings = JSON.parse(localStorage.getItem('local_bookings') || '[]');
-        const updated = localBookings.map(b => 
-          b.id === bookingId ? { ...b, paymentStatus: 'fully-paid', status: 'confirmed' } : b
-        );
-        localStorage.setItem('local_bookings', JSON.stringify(updated));
-        
-        // Notify other tabs
-        const bookingChannel = new BroadcastChannel('booking_updates');
-        bookingChannel.postMessage('booking_updated');
-        bookingChannel.close();
-        window.dispatchEvent(new Event('local_booking_update'));
-
-        // Simulate redirect to success page
-        alert('Payment API is offline. Simulating successful payment for testing purposes...');
-        window.location.href = `/payment/success?ref=${bookingReference}`;
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to initialize payment');
       }
+
+      const { paymentUrl, paymentData } = response.data.data;
+
+      // Create and submit form programmatically
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = paymentUrl;
+      form.style.display = 'none';
+
+      // Add all payment data as hidden inputs
+      Object.keys(paymentData).forEach(key => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = paymentData[key];
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
 
     } catch (error) {
       console.error('Payment initiation error:', error);

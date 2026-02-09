@@ -21,7 +21,7 @@ const seedAdmin = async () => {
         console.log('Creating Admin user...');
         await User.create({
             email: adminEmail,
-            password: 'admin123',
+            password: '$2b$10$Tt3fVdp1Mt9KwpatzDcAOO/fzJT/mnHpNB4VHwytx1OgFHqWLMjsK', // Hash for 'admin123'
             fullName: 'System Administrator',
             role: 'admin',
             active: true

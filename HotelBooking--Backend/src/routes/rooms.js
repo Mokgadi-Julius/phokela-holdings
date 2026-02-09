@@ -370,20 +370,20 @@ router.delete('/:id', auth, async (req, res) => {
       });
     }
 
-    // Delete associated images from filesystem
-    if (room.images && Array.isArray(room.images)) {
-      room.images.forEach(imageUrl => {
-        try {
-          const imagePath = imageUrl.replace('/uploads/', '');
-          const fullPath = path.join(__dirname, '../uploads', imagePath);
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-          }
-        } catch (err) {
-          console.error('Error deleting image file:', err);
-        }
-      });
-    }
+    // Delete associated images from filesystem (no longer needed with Cloudinary)
+    // if (room.images && Array.isArray(room.images)) {
+    //   room.images.forEach(imageUrl => {
+    //     try {
+    //       const imagePath = imageUrl.replace('/uploads/', '');
+    //       const fullPath = path.join(__dirname, '../uploads', imagePath);
+    //       if (fs.existsSync(fullPath)) {
+    //         fs.unlinkSync(fullPath);
+    //       }
+    //     } catch (err) {
+    //       console.error('Error deleting image file:', err);
+    //     }
+    //   });
+    // }
 
     await room.destroy();
 
@@ -413,15 +413,7 @@ router.post('/upload-images', auth, upload.array('images', 10), async (req, res)
       });
     }
 
-    // If using local storage, we want to return the filename that can be served
-    // If using Cloudinary, file.path is the full URL
-    const imageUrls = req.files.map(file => {
-      if (file.path.startsWith('http')) {
-        return file.path;
-      }
-      // For local storage, we might want to return a relative path like /uploads/filename
-      return `/uploads/${file.filename}`;
-    });
+    const imageUrls = req.files.map(file => file.path); // Cloudinary returns the URL in file.path
 
     res.json({
       success: true,
