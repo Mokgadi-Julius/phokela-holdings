@@ -218,7 +218,6 @@ const Contact = () => {
               title="Phokela Guest House Location"
             ></iframe>
           </div>
-          </div>
           <p className='text-center text-gray-600 mt-4'>
             Located at 108 Van Riebeeck St, Mokopane - Easy to find and accessible parking available
           </p>
