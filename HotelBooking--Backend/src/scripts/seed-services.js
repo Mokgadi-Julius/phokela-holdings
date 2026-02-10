@@ -4,9 +4,9 @@ const Service = require('../models/Service');
 const servicesData = [
   // Catering Services
   {
-    name: 'Wedding Catering Package',
+    name: 'Premium Event Catering',
     category: 'catering',
-    description: 'Exquisite wedding catering with customized menus, professional service staff, and elegant presentation. Includes appetizers, main course, desserts, and beverages.',
+    description: 'Exquisite event catering with customized menus, professional service staff, and elegant presentation. Includes appetizers, main course, desserts, and beverages.',
     price: 350.00,
     priceUnit: 'per person',
     maxPerson: 200,
@@ -19,11 +19,11 @@ const servicesData = [
       large: '',
       gallery: []
     },
-    tags: ['wedding', 'luxury', 'customizable'],
+    tags: ['event', 'luxury', 'customizable'],
     seo: {
-      metaTitle: 'Wedding Catering Package - Phokela Guest House',
-      metaDescription: 'Professional wedding catering services with customized menus and elegant presentation',
-      keywords: ['wedding catering', 'luxury catering', 'Phokela']
+      metaTitle: 'Premium Event Catering - Phokela Guest House',
+      metaDescription: 'Professional event catering services with customized menus and elegant presentation',
+      keywords: ['event catering', 'luxury catering', 'Phokela']
     }
   },
   {
@@ -146,9 +146,9 @@ const servicesData = [
 
   // Events Services
   {
-    name: 'Premium Wedding Venue Package',
+    name: 'Premium Event Venue Package',
     category: 'events',
-    description: 'Complete wedding venue package including indoor and outdoor spaces, decoration setup, sound system, lighting, and professional event coordination.',
+    description: 'Complete event venue package including indoor and outdoor spaces, decoration setup, sound system, lighting, and professional event coordination.',
     price: 25000.00,
     priceUnit: 'per event',
     maxPerson: 250,
@@ -161,11 +161,11 @@ const servicesData = [
       large: '',
       gallery: []
     },
-    tags: ['wedding', 'luxury', 'complete package'],
+    tags: ['event', 'luxury', 'complete package'],
     seo: {
-      metaTitle: 'Premium Wedding Venue - Phokela Guest House',
-      metaDescription: 'Complete wedding venue with professional services and beautiful spaces',
-      keywords: ['wedding venue', 'wedding package', 'Phokela']
+      metaTitle: 'Premium Event Venue - Phokela Guest House',
+      metaDescription: 'Complete event venue with professional services and beautiful spaces',
+      keywords: ['event venue', 'event package', 'Phokela']
     }
   },
   {
@@ -217,7 +217,7 @@ const servicesData = [
   {
     name: 'Traditional Ceremony Venue',
     category: 'events',
-    description: 'Authentic cultural venue for traditional ceremonies, including customary weddings, coming of age celebrations, and cultural events.',
+    description: 'Authentic cultural venue for traditional ceremonies, including customary celebrations, coming of age celebrations, and cultural events.',
     price: 12000.00,
     priceUnit: 'per event',
     maxPerson: 180,
