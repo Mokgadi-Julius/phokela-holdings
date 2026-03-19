@@ -8,7 +8,7 @@ import Events from './pages/Events';
 import Conference from './pages/Conference';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancelled from './pages/PaymentCancelled';
-import { AdminLayout, AdminLogin, Dashboard, Bookings, Rooms, NewBooking, Calendar, Services as AdminServices, Reports, Settings } from './pages/admin';
+import { AdminLayout, AdminLogin, Dashboard, Bookings, Rooms, NewBooking, Calendar, Services as AdminServices, Reports, Settings, Expenses } from './pages/admin';
 
 
 const App = () => {
@@ -109,6 +109,7 @@ const App = () => {
             <Route path='services' element={<AdminServices />} />
             <Route path='contacts' element={<div className="p-6 text-center"><h2 className="text-2xl font-bold">Contacts Management</h2><p className="mt-2 text-gray-600">Coming soon...</p></div>} />
             <Route path='reports' element={<Reports />} />
+            <Route path='expenses' element={<Expenses />} />
             <Route path='settings' element={<Settings />} />
           </Route>
 

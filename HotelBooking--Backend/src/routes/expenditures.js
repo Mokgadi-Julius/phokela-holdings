@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 // @desc    Get all expenditures with filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const { category, startDate, endDate } = req.query;
+    const { category, startDate, endDate, page = 1, limit = 10 } = req.query;
     const where = {};
 
     if (category) where.category = category;
@@ -19,14 +19,27 @@ router.get('/', auth, async (req, res) => {
       if (endDate) where.date[Op.lte] = endDate;
     }
 
-    const expenditures = await Expenditure.findAll({
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const { count, rows: expenditures } = await Expenditure.findAndCountAll({
       where,
-      order: [['date', 'DESC'], ['createdAt', 'DESC']]
+      order: [['date', 'DESC'], ['createdAt', 'DESC']],
+      limit: limitNum,
+      offset
     });
+
+    const globalTotal = (await Expenditure.sum('amount')) || 0;
+    const filteredTotal = (await Expenditure.sum('amount', { where })) || 0;
 
     res.json({
       success: true,
-      count: expenditures.length,
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: pageNum,
+      globalTotal,
+      filteredTotal,
       data: expenditures
     });
   } catch (error) {
@@ -71,6 +84,45 @@ router.post('/', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to record expenditure',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/expenditures/:id
+// @desc    Update an expenditure
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { title, category, amount, date, description, reference } = req.body;
+
+    const expenditure = await Expenditure.findByPk(req.params.id);
+
+    if (!expenditure) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expenditure not found'
+      });
+    }
+
+    if (title !== undefined) expenditure.title = title;
+    if (category !== undefined) expenditure.category = category;
+    if (amount !== undefined) expenditure.amount = parseFloat(amount);
+    if (date !== undefined) expenditure.date = date;
+    if (description !== undefined) expenditure.description = description;
+    if (reference !== undefined) expenditure.reference = reference;
+
+    await expenditure.save();
+
+    res.json({
+      success: true,
+      message: 'Expenditure updated successfully',
+      data: expenditure
+    });
+  } catch (error) {
+    console.error('Update expenditure error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update expenditure',
       error: error.message
     });
   }

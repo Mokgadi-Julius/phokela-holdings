@@ -35,6 +35,19 @@ async function apiRequest(endpoint, options = {}) {
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('adminToken');
+        
+        // Dispatch an event to notify the application
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+        
+        // As a fallback if the app doesn't handle the event, redirect to login
+        if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
+      }
+
       throw new APIError(
         data.message || 'API request failed',
         response.status,
@@ -333,6 +346,14 @@ export const expendituresAPI = {
   create: async (data) => {
     return apiRequest('/expenditures', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update an expenditure
+  update: async (id, data) => {
+    return apiRequest(`/expenditures/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   },

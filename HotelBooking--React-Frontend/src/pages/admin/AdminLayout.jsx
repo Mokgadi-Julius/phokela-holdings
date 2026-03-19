@@ -134,6 +134,7 @@ const AdminLayout = () => {
     { name: 'Services', href: '/admin/services', icon: '🏨' },
     { name: 'Contacts', href: '/admin/contacts', icon: '✉️' },
     { name: 'Reports', href: '/admin/reports', icon: '📈' },
+    { name: 'Expenses', href: '/admin/expenses', icon: '💸' },
     { name: 'Settings', href: '/admin/settings', icon: '⚙️' },
   ];
 
