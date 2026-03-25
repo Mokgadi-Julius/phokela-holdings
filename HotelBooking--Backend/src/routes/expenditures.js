@@ -3,6 +3,83 @@ const router = express.Router();
 const { Expenditure } = require('../models');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
+const { calculateNextDueDate } = require('../schedulers/recurringExpenses');
+
+// @route   GET /api/expenditures/templates
+// @desc    Get all recurring expense templates
+router.get('/templates', auth, async (req, res) => {
+  try {
+    const templates = await Expenditure.findAll({
+      where: { isRecurring: true },
+      order: [['createdAt', 'DESC']],
+    });
+    res.json({ success: true, data: templates });
+  } catch (error) {
+    console.error('Get templates error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch templates', error: error.message });
+  }
+});
+
+// @route   POST /api/expenditures/templates/trigger
+// @desc    Manually run all due recurring templates now
+router.post('/templates/trigger', auth, async (req, res) => {
+  try {
+    const { processRecurringExpenses } = require('../schedulers/recurringExpenses');
+    await processRecurringExpenses();
+    res.json({ success: true, message: 'Recurring expenses processed' });
+  } catch (error) {
+    console.error('Trigger recurring error:', error);
+    res.status(500).json({ success: false, message: 'Failed to trigger recurring expenses', error: error.message });
+  }
+});
+
+// @route   POST /api/expenditures/templates/:id/trigger
+// @desc    Force-generate the next occurrence for a specific template now
+router.post('/templates/:id/trigger', auth, async (req, res) => {
+  try {
+    const template = await Expenditure.findOne({ where: { id: req.params.id, isRecurring: true } });
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Recurring template not found' });
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const generated = await Expenditure.create({
+      title: template.title,
+      category: template.category,
+      amount: template.amount,
+      date: today,
+      description: template.description,
+      reference: template.reference,
+      isRecurring: false,
+      recurringFrequency: null,
+      nextDueDate: null,
+    });
+    await template.update({ nextDueDate: calculateNextDueDate(today, template.recurringFrequency) });
+    res.json({ success: true, message: 'Expense generated', data: generated });
+  } catch (error) {
+    console.error('Trigger template error:', error);
+    res.status(500).json({ success: false, message: 'Failed to trigger template', error: error.message });
+  }
+});
+
+// @route   PATCH /api/expenditures/templates/:id/pause
+// @desc    Toggle pause/resume for a recurring template
+router.patch('/templates/:id/pause', auth, async (req, res) => {
+  try {
+    const template = await Expenditure.findOne({ where: { id: req.params.id, isRecurring: true } });
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Recurring template not found' });
+    }
+    await template.update({ isPaused: !template.isPaused });
+    res.json({
+      success: true,
+      message: template.isPaused ? 'Template paused' : 'Template resumed',
+      data: template,
+    });
+  } catch (error) {
+    console.error('Pause template error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update template', error: error.message });
+  }
+});
 
 // @route   GET /api/expenditures
 // @desc    Get all expenditures with filtering
@@ -33,6 +110,31 @@ router.get('/', auth, async (req, res) => {
     const globalTotal = (await Expenditure.sum('amount')) || 0;
     const filteredTotal = (await Expenditure.sum('amount', { where })) || 0;
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const thisMonthStart = new Date(currentYear, currentMonth, 1);
+    const thisMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+    const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const lastMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+    const ytdStart = new Date(currentYear, 0, 1);
+    const ytdEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+    const thisMonthTotal = (await Expenditure.sum('amount', {
+      where: { date: { [Op.gte]: thisMonthStart, [Op.lte]: thisMonthEnd } }
+    })) || 0;
+
+    const lastMonthTotal = (await Expenditure.sum('amount', {
+      where: { date: { [Op.gte]: lastMonthStart, [Op.lte]: lastMonthEnd } }
+    })) || 0;
+
+    const ytdTotal = (await Expenditure.sum('amount', {
+      where: { date: { [Op.gte]: ytdStart, [Op.lte]: ytdEnd } }
+    })) || 0;
+
     res.json({
       success: true,
       count,
@@ -40,6 +142,9 @@ router.get('/', auth, async (req, res) => {
       currentPage: pageNum,
       globalTotal,
       filteredTotal,
+      thisMonthTotal,
+      lastMonthTotal,
+      ytdTotal,
       data: expenditures
     });
   } catch (error) {
@@ -56,7 +161,7 @@ router.get('/', auth, async (req, res) => {
 // @desc    Create a new expenditure
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, category, amount, date, description, reference } = req.body;
+    const { title, category, amount, date, description, reference, isRecurring, recurringFrequency } = req.body;
 
     if (!title || !amount) {
       return res.status(400).json({
@@ -65,13 +170,17 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    const expenseDate = date || new Date().toISOString().split('T')[0];
     const expenditure = await Expenditure.create({
       title,
       category,
       amount: parseFloat(amount),
-      date: date || new Date(),
+      date: expenseDate,
       description,
-      reference
+      reference,
+      isRecurring: !!isRecurring,
+      recurringFrequency: isRecurring ? (recurringFrequency || null) : null,
+      nextDueDate: isRecurring ? calculateNextDueDate(expenseDate, recurringFrequency) : null,
     });
 
     res.status(201).json({
@@ -93,7 +202,7 @@ router.post('/', auth, async (req, res) => {
 // @desc    Update an expenditure
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, category, amount, date, description, reference } = req.body;
+    const { title, category, amount, date, description, reference, isRecurring, recurringFrequency } = req.body;
 
     const expenditure = await Expenditure.findByPk(req.params.id);
 
@@ -110,6 +219,17 @@ router.put('/:id', auth, async (req, res) => {
     if (date !== undefined) expenditure.date = date;
     if (description !== undefined) expenditure.description = description;
     if (reference !== undefined) expenditure.reference = reference;
+    if (isRecurring !== undefined) {
+      expenditure.isRecurring = !!isRecurring;
+      expenditure.recurringFrequency = isRecurring ? (recurringFrequency || null) : null;
+      const baseDate = (date !== undefined ? date : expenditure.date);
+      expenditure.nextDueDate = isRecurring
+        ? calculateNextDueDate(baseDate, recurringFrequency || expenditure.recurringFrequency)
+        : null;
+    } else if (date !== undefined && expenditure.isRecurring) {
+      // If only the date changed, recalculate nextDueDate
+      expenditure.nextDueDate = calculateNextDueDate(date, expenditure.recurringFrequency);
+    }
 
     await expenditure.save();
 

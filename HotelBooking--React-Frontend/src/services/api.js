@@ -364,6 +364,26 @@ export const expendituresAPI = {
       method: 'DELETE',
     });
   },
+
+  // Get all recurring templates
+  getTemplates: async () => {
+    return apiRequest('/expenditures/templates');
+  },
+
+  // Trigger all due recurring templates now
+  triggerAll: async () => {
+    return apiRequest('/expenditures/templates/trigger', { method: 'POST' });
+  },
+
+  // Force-generate next occurrence for a specific template
+  triggerTemplate: async (id) => {
+    return apiRequest(`/expenditures/templates/${id}/trigger`, { method: 'POST' });
+  },
+
+  // Toggle pause/resume for a recurring template
+  togglePause: async (id) => {
+    return apiRequest(`/expenditures/templates/${id}/pause`, { method: 'PATCH' });
+  },
 };
 
 // Settings API
