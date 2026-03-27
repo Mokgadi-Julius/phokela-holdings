@@ -118,6 +118,19 @@ const Dashboard = () => {
       color: 'bg-indigo-500',
       link: '/admin/services',
     },
+    {
+      title: 'This Month Expenses',
+      value: `R${(stats.thisMonthExpenses || 0).toLocaleString()}`,
+      icon: '💸',
+      color: 'bg-red-500',
+      link: '/admin/expenses',
+    },
+    {
+      title: 'Net Profit',
+      value: `R${(stats.thisMonthNetProfit || 0).toLocaleString()}`,
+      icon: '📊',
+      color: stats.thisMonthNetProfit >= 0 ? 'bg-emerald-500' : 'bg-orange-500',
+    },
   ];
 
   return (

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op, fn, col, literal } = require('sequelize');
-const { Service, Booking, Contact, Room } = require('../models');
+const { Service, Booking, Contact, Room, Expenditure } = require('../models');
 const { sequelize } = require('../config/database-mysql');
 const auth = require('../middleware/auth');
 
@@ -23,7 +23,8 @@ router.get('/dashboard', auth, async (req, res) => {
       todayBookings,
       thisWeekBookings,
       pendingBookings,
-      newContacts
+      newContacts,
+      thisMonthExpensesResult
     ] = await Promise.all([
       Service.count({ where: { availability: true } }),
       Booking.count(),
@@ -31,8 +32,11 @@ router.get('/dashboard', auth, async (req, res) => {
       Booking.count({ where: { createdAt: { [Op.gte]: startOfToday } } }),
       Booking.count({ where: { createdAt: { [Op.gte]: startOfWeek } } }),
       Booking.count({ where: { status: 'pending' } }),
-      Contact.count({ where: { status: 'new' } })
+      Contact.count({ where: { status: 'new' } }),
+      Expenditure.sum('amount', { where: { date: { [Op.gte]: startOfMonth } } })
     ]);
+
+    const thisMonthExpenses = parseFloat(thisMonthExpensesResult || 0);
 
     // Fetch all confirmed/completed bookings for the last 7 months to calculate revenue in JS
     const sevenMonthsAgo = new Date();
@@ -72,10 +76,33 @@ router.get('/dashboard', auth, async (req, res) => {
       monthlyOverviewMap[monthKey].revenue += amount;
     });
 
+    // Fetch expenses for the last 7 months grouped by month
+    const monthlyExpenses = await Expenditure.findAll({
+      where: { date: { [Op.gte]: sevenMonthsAgo } },
+      attributes: ['amount', 'date']
+    });
+
+    monthlyExpenses.forEach(expense => {
+      const expenseDate = new Date(expense.date);
+      const monthKey = expenseDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      const monthSortKey = expenseDate.toISOString().substring(0, 7);
+
+      if (!monthlyOverviewMap[monthKey]) {
+        monthlyOverviewMap[monthKey] = { month: monthKey, bookings: 0, revenue: 0, expenses: 0, sortKey: monthSortKey };
+      }
+      monthlyOverviewMap[monthKey].expenses = (monthlyOverviewMap[monthKey].expenses || 0) + parseFloat(expense.amount || 0);
+    });
+
     // Convert map to sorted array
     const monthlyOverview = Object.values(monthlyOverviewMap)
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-      .map(({ month, bookings, revenue }) => ({ month, bookings, revenue }));
+      .map(({ month, bookings, revenue, expenses }) => ({
+        month,
+        bookings,
+        revenue,
+        expenses: expenses || 0,
+        profit: revenue - (expenses || 0),
+      }));
 
     // Recent bookings
     const recentBookings = await Booking.findAll({
@@ -116,6 +143,8 @@ router.get('/dashboard', auth, async (req, res) => {
           todayBookings,
           thisWeekBookings,
           thisMonthRevenue: thisMonthRevenue || 0,
+          thisMonthExpenses,
+          thisMonthNetProfit: (thisMonthRevenue || 0) - thisMonthExpenses,
           pendingBookings,
           newContacts
         },
