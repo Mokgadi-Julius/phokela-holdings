@@ -12,6 +12,8 @@ const RoomDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [checkIn, setCheckIn] = useState(null);
+  const [checkOut, setCheckOut] = useState(null);
 
   const { id } = useParams(); // id get form url (/room/:id) as string...
   const { rooms } = useRoomContext();
@@ -150,20 +152,51 @@ const RoomDetails = () => {
             {/* reservation */}
             <div className='py-8 px-6 bg-accent/20 mb-12'>
 
-              <div className='flex flex-col space-y-4 mb-4'>
-                <h3>Your Booking</h3>
-                <div className='h-[60px]'> <CheckIn /> </div>
-                <div className='h-[60px]'> <CheckOut /> </div>
-                <div className='h-[60px]'> <AdultsDropdown /> </div>
-                <div className='h-[60px]'> <KidsDropdown /> </div>
-              </div>
+              {(() => {
+                const nights = checkIn && checkOut
+                  ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+                  : null;
+                const totalPrice = nights && price ? nights * price : null;
 
-              <button
-                onClick={() => setIsBookingModalOpen(true)}
-                className='btn btn-lg btn-primary w-full'
-              >
-                book now for R{price}
-              </button>
+                return (
+                  <>
+                    <div className='flex flex-col space-y-4 mb-4'>
+                      <h3>Your Booking</h3>
+                      <div className='h-[60px]'>
+                        <CheckIn
+                          value={checkIn}
+                          onChange={(date) => {
+                            setCheckIn(date);
+                            if (checkOut && date >= checkOut) setCheckOut(null);
+                          }}
+                        />
+                      </div>
+                      <div className='h-[60px]'>
+                        <CheckOut
+                          value={checkOut}
+                          onChange={setCheckOut}
+                          minDate={checkIn ? new Date(checkIn.getTime() + 86400000) : new Date()}
+                        />
+                      </div>
+                      <div className='h-[60px]'> <AdultsDropdown /> </div>
+                      <div className='h-[60px]'> <KidsDropdown /> </div>
+                    </div>
+
+                    {nights > 0 && (
+                      <p className='text-sm text-gray-600 mb-3'>
+                        {nights} night{nights > 1 ? 's' : ''} &times; R{price} = <span className='font-semibold text-accent'>R{totalPrice}</span>
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => setIsBookingModalOpen(true)}
+                      className='btn btn-lg btn-primary w-full'
+                    >
+                      {totalPrice ? `book now for R${totalPrice}` : `book now for R${price} / night`}
+                    </button>
+                  </>
+                );
+              })()}
             </div>
 
             <div>
@@ -190,7 +223,7 @@ const RoomDetails = () => {
       </div>
 
       {/* Booking Modal */}
-      {room && (
+      {room && isBookingModalOpen && (
         <BookingModal
           service={{
             ...room,
@@ -199,7 +232,14 @@ const RoomDetails = () => {
           }}
           isOpen={isBookingModalOpen}
           onClose={() => setIsBookingModalOpen(false)}
-          bookingDetails={bookingDetails}
+          bookingDetails={{
+            checkIn: checkIn
+              ? `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-${String(checkIn.getDate()).padStart(2, '0')}`
+              : '',
+            checkOut: checkOut
+              ? `${checkOut.getFullYear()}-${String(checkOut.getMonth() + 1).padStart(2, '0')}-${String(checkOut.getDate()).padStart(2, '0')}`
+              : '',
+          }}
         />
       )}
 

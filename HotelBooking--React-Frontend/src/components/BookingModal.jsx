@@ -53,19 +53,28 @@ const BookingModal = ({ service, isOpen, onClose, bookingDetails }) => {
       const bookingDetails = { ...formData.bookingDetails };
 
       if (service?.category === 'accommodation') {
-        // Set default check-in to tomorrow, check-out to day after
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dayAfter = new Date();
-        dayAfter.setDate(dayAfter.getDate() + 2);
-
-        bookingDetails.checkIn = tomorrow.toISOString().split('T')[0];
-        bookingDetails.checkOut = dayAfter.toISOString().split('T')[0];
+        // Only default if the user didn't select dates on the room page
+        if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const dayAfter = new Date();
+          dayAfter.setDate(dayAfter.getDate() + 2);
+          bookingDetails.checkIn = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+          bookingDetails.checkOut = `${dayAfter.getFullYear()}-${String(dayAfter.getMonth() + 1).padStart(2, '0')}-${String(dayAfter.getDate()).padStart(2, '0')}`;
+        }
         bookingDetails.adults = parseInt(formData.bookingDetails.adults) || 1;
         bookingDetails.children = parseInt(formData.bookingDetails.children) || 0;
       } else {
-        bookingDetails.adults = parseInt(formData.bookingDetails.adults);
+        bookingDetails.adults = parseInt(formData.bookingDetails.adults) || 1;
         bookingDetails.children = parseInt(formData.bookingDetails.children) || 0;
+
+        // Validate against the service's maximum capacity before calling the API
+        const maxAllowed = service?.maxPerson;
+        if (maxAllowed && bookingDetails.adults > maxAllowed) {
+          setError(`This service allows a maximum of ${maxAllowed} guests.`);
+          setLoading(false);
+          return;
+        }
       }
 
       const bookingData = {
@@ -195,6 +204,17 @@ const BookingModal = ({ service, isOpen, onClose, bookingDetails }) => {
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-700">{error}</p>
+              </div>
+            )}
+
+            {/* Accommodation date summary */}
+            {service?.category === 'accommodation' && formData.bookingDetails.checkIn && formData.bookingDetails.checkOut && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-blue-800 mb-2">Your Stay</h3>
+                <div className="flex gap-6 text-sm text-blue-700">
+                  <span><strong>Check-in:</strong> {formData.bookingDetails.checkIn}</span>
+                  <span><strong>Check-out:</strong> {formData.bookingDetails.checkOut}</span>
+                </div>
               </div>
             )}
 

@@ -159,6 +159,13 @@ const Bookings = () => {
     }
   };
 
+  // Parse only the date portion of an ISO string to avoid timezone shifts
+  const formatDate = (isoStr) => {
+    if (!isoStr) return 'N/A';
+    const [y, m, d] = isoStr.substring(0, 10).split('-');
+    return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString();
+  };
+
   const getStatusBadgeClass = (status) => {
     const classes = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -364,12 +371,17 @@ const Bookings = () => {
                       <div className="text-sm text-gray-900">
                         {booking.bookingDetails?.checkIn && (
                           <div>
-                            Check-in: {new Date(booking.bookingDetails.checkIn).toLocaleDateString()}
+                            Check-in: {formatDate(booking.bookingDetails.checkIn)}
+                          </div>
+                        )}
+                        {booking.bookingDetails?.checkOut && (
+                          <div>
+                            Check-out: {formatDate(booking.bookingDetails.checkOut)}
                           </div>
                         )}
                         {booking.bookingDetails?.eventDate && (
                           <div>
-                            Event: {new Date(booking.bookingDetails.eventDate).toLocaleDateString()}
+                            Event: {formatDate(booking.bookingDetails.eventDate)}
                           </div>
                         )}
                       </div>
@@ -753,18 +765,18 @@ const Bookings = () => {
                     <>
                       <div>
                         <p className="text-sm text-gray-600">Check-in</p>
-                        <p className="font-medium">{new Date(selectedBooking.bookingDetails.checkIn).toLocaleDateString()}</p>
+                        <p className="font-medium">{formatDate(selectedBooking.bookingDetails.checkIn)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Check-out</p>
-                        <p className="font-medium">{new Date(selectedBooking.bookingDetails.checkOut).toLocaleDateString()}</p>
+                        <p className="font-medium">{formatDate(selectedBooking.bookingDetails.checkOut)}</p>
                       </div>
                     </>
                   )}
                   {selectedBooking.bookingDetails?.eventDate && (
                     <div>
                       <p className="text-sm text-gray-600">Event Date</p>
-                      <p className="font-medium">{new Date(selectedBooking.bookingDetails.eventDate).toLocaleDateString()}</p>
+                      <p className="font-medium">{formatDate(selectedBooking.bookingDetails.eventDate)}</p>
                     </div>
                   )}
                 </div>

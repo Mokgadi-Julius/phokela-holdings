@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { upload } = require('../config/cloudinary');
 const Room = require('../models/Room');
+const { Booking } = require('../models');
+const { Op, literal } = require('sequelize');
 const auth = require('../middleware/auth');
 
 // @route   GET /api/rooms
@@ -135,6 +137,145 @@ router.get('/search', async (req, res) => {
       message: 'Failed to search rooms',
       error: error.message
     });
+  }
+});
+
+// @route   GET /api/rooms/availability
+// @desc    Room availability — available count per day
+//          Single date:  ?date=YYYY-MM-DD
+//          Date range:   ?from=YYYY-MM-DD&to=YYYY-MM-DD  (returns per-day array)
+// @access  Private
+router.get('/availability', auth, async (req, res) => {
+  try {
+    const { date, from, to } = req.query;
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (!date && !from) {
+      return res.status(400).json({
+        success: false,
+        message: 'Provide ?date=YYYY-MM-DD or ?from=YYYY-MM-DD&to=YYYY-MM-DD',
+      });
+    }
+
+    const badParam = [date, from, to].filter(Boolean).find(v => !dateRe.test(v));
+    if (badParam) {
+      return res.status(400).json({ success: false, message: `Invalid date format: ${badParam}. Use YYYY-MM-DD` });
+    }
+
+    // All rooms and their total quantities
+    const rooms = await Room.findAll({ attributes: ['id', 'name', 'type', 'totalQuantity'] });
+    const totalRooms = rooms.reduce((sum, r) => sum + (r.totalQuantity || 1), 0);
+
+    // Helper: build a YYYY-MM-DD occupancy map for bookings in [rangeStart, rangeEnd)
+    const buildOccupancyMap = (bookings, rangeStart, rangeEnd) => {
+      const map = {};
+      for (const b of bookings) {
+        const qty   = b.roomQuantity || 1;
+        const ciStr = b.bookingDetails?.checkIn?.substring(0, 10);
+        const coStr = b.bookingDetails?.checkOut?.substring(0, 10);
+        if (!ciStr || !coStr) continue;
+        const [ciy, cim, cid] = ciStr.split('-').map(Number);
+        const [coy, com, cod] = coStr.split('-').map(Number);
+        let cur = new Date(Math.max(new Date(ciy, cim - 1, cid), rangeStart));
+        const end = new Date(Math.min(new Date(coy, com - 1, cod), rangeEnd));
+        while (cur < end) {
+          const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+          map[ds] = (map[ds] || 0) + qty;
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+      return map;
+    };
+
+    if (date) {
+      // Single-date mode — also return per-room breakdown
+      const [y, m, d] = date.split('-').map(Number);
+      const rangeStart = new Date(y, m - 1, d);
+      const rangeEnd   = new Date(y, m - 1, d + 1); // exclusive end = next day
+
+      const bookings = await Booking.findAll({
+        where: {
+          roomId: { [Op.not]: null },
+          status: { [Op.in]: ['pending', 'confirmed'] },
+          [Op.and]: [
+            literal(`JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkIn'))  <= '${date}'`),
+            literal(`JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkOut')) >  '${date}'`),
+          ],
+        },
+        attributes: ['roomId', 'roomQuantity', 'bookingDetails'],
+      });
+
+      const occupancyMap = buildOccupancyMap(bookings, rangeStart, rangeEnd);
+      const bookedOnDate = occupancyMap[date] || 0;
+
+      // Per-room breakdown
+      const perRoomBooked = {};
+      bookings.forEach(b => {
+        perRoomBooked[b.roomId] = (perRoomBooked[b.roomId] || 0) + (b.roomQuantity || 1);
+      });
+
+      const roomBreakdown = rooms.map(r => ({
+        roomId:    r.id,
+        name:      r.name,
+        type:      r.type,
+        total:     r.totalQuantity || 1,
+        booked:    perRoomBooked[r.id] || 0,
+        available: Math.max(0, (r.totalQuantity || 1) - (perRoomBooked[r.id] || 0)),
+      }));
+
+      return res.json({
+        success: true,
+        data: {
+          date,
+          totalRooms,
+          booked:    bookedOnDate,
+          available: Math.max(0, totalRooms - bookedOnDate),
+          rooms:     roomBreakdown,
+        },
+      });
+    }
+
+    // Date-range mode — returns per-day totals
+    const endDate = to || from;
+    const [fy, fm, fd] = from.split('-').map(Number);
+    const [ey, em, ed] = endDate.split('-').map(Number);
+    const rangeStart = new Date(fy, fm - 1, fd);
+    const rangeEnd   = new Date(ey, em - 1, ed + 1); // inclusive end
+
+    if (rangeEnd <= rangeStart) {
+      return res.status(400).json({ success: false, message: 'to must be on or after from' });
+    }
+
+    const bookings = await Booking.findAll({
+      where: {
+        roomId: { [Op.not]: null },
+        status: { [Op.in]: ['pending', 'confirmed'] },
+        [Op.and]: [
+          literal(`JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkIn'))  < '${endDate}'`),
+          literal(`JSON_UNQUOTE(JSON_EXTRACT(bookingDetails, '$.checkOut')) > '${from}'`),
+        ],
+      },
+      attributes: ['roomId', 'roomQuantity', 'bookingDetails'],
+    });
+
+    const occupancyMap = buildOccupancyMap(bookings, rangeStart, rangeEnd);
+
+    const days = [];
+    let cur = new Date(rangeStart);
+    while (cur < rangeEnd) {
+      const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      const booked = occupancyMap[ds] || 0;
+      days.push({ date: ds, totalRooms, booked, available: Math.max(0, totalRooms - booked) });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    return res.json({
+      success: true,
+      data: { from, to: endDate, totalRooms, days },
+    });
+  } catch (error) {
+    console.error('Get room availability error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch room availability', error: error.message });
   }
 });
 

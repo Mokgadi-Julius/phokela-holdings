@@ -198,6 +198,14 @@ export const bookingsAPI = {
     });
   },
 
+  // Reschedule booking dates (drag-and-drop)
+  updateDates: async (id, dates) => {
+    return apiRequest(`/bookings/${id}/dates`, {
+      method: 'PATCH',
+      body: JSON.stringify(dates),
+    });
+  },
+
   // Update payment status
   updatePayment: async (id, paymentData) => {
     return apiRequest(`/bookings/${id}/payment`, {
@@ -247,6 +255,14 @@ export const roomsAPI = {
     const queryParams = new URLSearchParams(filters).toString();
     const endpoint = queryParams ? `/rooms?${queryParams}` : '/rooms';
     return apiRequest(endpoint);
+  },
+
+  // Get room availability
+  // Single date:  getAvailability({ date: 'YYYY-MM-DD' })
+  // Date range:   getAvailability({ from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' })
+  getAvailability: async (params) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return apiRequest(`/rooms/availability?${queryParams}`);
   },
 
   // Get room by ID

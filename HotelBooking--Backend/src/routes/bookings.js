@@ -14,8 +14,8 @@ const validateBooking = [
   body('primaryGuest.lastName').trim().isLength({ min: 2, max: 50 }).withMessage('Last name must be 2-50 characters'),
   body('primaryGuest.email').isEmail().withMessage('Valid email is required'),
   body('primaryGuest.phone').isMobilePhone('any').withMessage('Valid phone number is required'),
-  body('bookingDetails.adults').isInt({ min: 1, max: 20 }).withMessage('Adults must be 1-20'),
-  body('bookingDetails.children').isInt({ min: 0, max: 10 }).withMessage('Children must be 0-10')
+  body('bookingDetails.adults').isInt({ min: 1, max: 500 }).withMessage('Adults must be between 1 and 500'),
+  body('bookingDetails.children').isInt({ min: 0, max: 100 }).withMessage('Children must be between 0 and 100')
 ];
 
 // @route   GET /api/bookings
@@ -98,17 +98,19 @@ router.post('/', validateBooking, async (req, res) => {
   }
 
   try {
-    // Check if this is a room (accommodation) or service booking
+    // Determine booking type by the presence of checkIn (accommodation-only field),
+    // then look in the correct table first to avoid ID collisions between rooms and services.
     const serviceId = req.body.service;
+    const isAccommodationRequest = !!(req.body.bookingDetails?.checkIn);
     let service;
     let isRoom = false;
 
-    // First try to find in Room table (for accommodation)
-    service = await Room.findByPk(serviceId);
-    if (service) {
-      isRoom = true;
-    } else {
-      // If not found in Room table, try Service table
+    if (isAccommodationRequest) {
+      service = await Room.findByPk(serviceId);
+      if (service) isRoom = true;
+    }
+
+    if (!service) {
       service = await Service.findByPk(serviceId);
       isRoom = false;
     }
@@ -414,6 +416,68 @@ router.post('/:id/notes', auth, async (req, res) => {
       message: 'Server error while adding note',
       error: error.message
     });
+  }
+});
+
+// @route   PATCH /api/bookings/:id/dates
+// @desc    Reschedule booking dates (check-in/check-out or event date)
+// @access  Private
+router.patch('/:id/dates', auth, async (req, res) => {
+  try {
+    const { checkIn, checkOut, eventDate } = req.body;
+
+    const booking = await Booking.findByPk(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (['cancelled', 'completed', 'no-show'].includes(booking.status)) {
+      return res.status(400).json({ success: false, message: 'Cannot reschedule a booking with status: ' + booking.status });
+    }
+
+    const isAccommodation = booking.serviceSnapshot?.category === 'accommodation';
+    const oldDetails = { ...booking.bookingDetails };
+
+    if (isAccommodation) {
+      if (!checkIn || !checkOut) {
+        return res.status(400).json({ success: false, message: 'checkIn and checkOut are required for accommodation bookings' });
+      }
+      const checkInDate  = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      if (checkOutDate <= checkInDate) {
+        return res.status(400).json({ success: false, message: 'Check-out must be after check-in' });
+      }
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      booking.bookingDetails = { ...oldDetails, checkIn, checkOut, nights };
+
+      const pricePerNight = parseFloat(booking.serviceSnapshot.price) || 0;
+      const newTotal = pricePerNight * nights;
+      booking.pricing = { ...booking.pricing, basePrice: newTotal, totalAmount: newTotal };
+    } else {
+      if (!eventDate) {
+        return res.status(400).json({ success: false, message: 'eventDate is required for non-accommodation bookings' });
+      }
+      booking.bookingDetails = { ...oldDetails, eventDate };
+    }
+
+    const currentNotes = booking.notes || [];
+    const oldDates = isAccommodation
+      ? `${oldDetails.checkIn?.substring(0, 10)} → ${oldDetails.checkOut?.substring(0, 10)}`
+      : oldDetails.eventDate?.substring(0, 10);
+    const newDates = isAccommodation ? `${checkIn} → ${checkOut}` : eventDate;
+    currentNotes.push({
+      date: new Date(),
+      user: 'admin',
+      note: `Dates rescheduled: ${oldDates} to ${newDates}`,
+      type: 'reschedule',
+    });
+    booking.notes = currentNotes;
+
+    await booking.save();
+
+    res.json({ success: true, message: 'Booking dates updated successfully', data: booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error while updating dates', error: error.message });
   }
 });
 
