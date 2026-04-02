@@ -3,6 +3,20 @@ const router = express.Router();
 const { Setting } = require('../models');
 const auth = require('../middleware/auth');
 
+// @route   GET /api/settings/public/:group
+// @desc    Get settings by group — no auth (for public frontend pages)
+// @access  Public
+router.get('/public/:group', async (req, res) => {
+  try {
+    const settings = await Setting.findAll({ where: { group: req.params.group } });
+    const settingsMap = {};
+    settings.forEach(s => { settingsMap[s.key] = s.value; });
+    res.json({ success: true, data: settingsMap });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // @route   GET /api/settings
 // @desc    Get all settings
 router.get('/', auth, async (req, res) => {

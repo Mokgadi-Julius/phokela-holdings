@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
+import { settingsAPI } from '../services/api';
 
 const WhatsAppButton = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showInitially, setShowInitially] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('27835940966');
 
-  // Phone number for Phokela Guest House (using the number from contact info)
-  const phoneNumber = '27835940966'; // +27 83 594 0966
   const message = encodeURIComponent('Hi! I would like to inquire about your services at Phokela Guest House.');
 
   useEffect(() => {
+    settingsAPI.getByGroup('cms_general')
+      .then(res => {
+        if (res.success && res.data?.whatsapp_number) {
+          // Normalise: strip spaces/dashes, replace leading 0 with 27
+          const raw = res.data.whatsapp_number.replace(/[\s\-]/g, '');
+          setPhoneNumber(raw.startsWith('0') ? '27' + raw.slice(1) : raw);
+        }
+      })
+      .catch(() => {});
     // Show the button after a short delay
     const timer = setTimeout(() => {
       setShowInitially(true);

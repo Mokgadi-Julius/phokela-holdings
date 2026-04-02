@@ -1,8 +1,8 @@
 import { useRoomContext } from '../context/RoomContext';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogoWhite } from '../assets'; // SVG Logo
-import { LogoDark } from '../assets'; // SVG Logo
+import { LogoWhite, LogoDark as LogoDarkAsset } from '../assets';
+import { settingsAPI } from '../services/api';
 
 
 const Header = () => {
@@ -11,6 +11,13 @@ const Header = () => {
 
   const [header, setHeader] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cms, setCms] = useState(null);
+
+  useEffect(() => {
+    settingsAPI.getByGroup('cms_general')
+      .then(res => setCms(res.success ? res.data : {}))
+      .catch(() => setCms({}));
+  }, []);
 
   useEffect(() => {
     window.addEventListener('scroll', () =>
@@ -47,10 +54,9 @@ const Header = () => {
 
         {/* Logo */}
         <Link to="/" onClick={() => {resetRoomFilterData(); closeMobileMenu();}}>
-          {
-            header
-              ? <img className='w-[120px] md:w-[160px]' src={LogoDark} alt="Hotel Logo" />
-              : <img className='w-[120px] md:w-[160px] drop-shadow-lg' src={LogoWhite} alt="Hotel Logo" />
+          {header
+            ? <img className='w-[120px] md:w-[160px]' src={cms?.logo_dark || LogoDarkAsset} alt={cms?.site_name || 'Hotel Logo'} />
+            : <img className='w-[120px] md:w-[160px] drop-shadow-lg' src={cms?.logo_light || LogoWhite} alt={cms?.site_name || 'Hotel Logo'} />
           }
         </Link>
 

@@ -1,6 +1,6 @@
 import { ScrollToTop } from '../components';
 import { Link } from 'react-router-dom';
-import { servicesAPI } from '../services/api';
+import { servicesAPI, settingsAPI } from '../services/api';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
@@ -11,9 +11,13 @@ const Catering = () => {
   const [loading, setLoading] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [cms, setCms] = useState(null);
 
   useEffect(() => {
     fetchCateringServices();
+    settingsAPI.getByGroup('cms_catering')
+      .then(res => setCms(res.success ? res.data : {}))
+      .catch(() => setCms({}));
   }, []);
 
   const fetchCateringServices = async () => {
@@ -29,25 +33,45 @@ const Catering = () => {
     }
   };
 
+  const heroTitle       = cms?.hero_title       || 'Professional Catering Services';
+  const heroDescription = cms?.hero_description || 'Delicious, fresh meals prepared with love for your special occasions';
+  const heroBg          = cms?.hero_bg          || images.Slider2;
+  const highlights      = [1, 2, 3].map(n => ({
+    icon:  cms?.[`highlight_${n}_icon`]  || ['👨‍🍳', '🥬', '🍽️'][n - 1],
+    title: cms?.[`highlight_${n}_title`] || ['Expert Chefs', 'Fresh Ingredients', 'Custom Menus'][n - 1],
+    desc:  cms?.[`highlight_${n}_desc`]  || [
+      'Experienced culinary professionals passionate about great food',
+      'Locally-sourced, fresh ingredients for the best flavor and quality',
+      'Tailored menu options to suit your preferences and dietary needs',
+    ][n - 1],
+  }));
+  const packagesHeading = cms?.packages_heading || 'Our Catering Packages';
+  const ctaHeading      = cms?.cta_heading      || 'Ready to Place Your Order?';
+  const ctaDescription  = cms?.cta_description  || 'Contact us to discuss your catering needs and get a custom quote for your event';
+  const ctaBtnText      = cms?.cta_btn_text      || 'Contact Us for Catering';
+  const ctaBtnLink      = cms?.cta_btn_link      || '/contact';
+
   return (
     <div className='min-h-screen pt-[120px] pb-12'>
       <ScrollToTop />
 
       {/* Hero Section */}
-      <div className='relative h-[400px] bg-cover bg-center'
-           style={{ backgroundImage: `url(${images.Slider2})` }}>
-        <div className='absolute inset-0 bg-black/60'></div>
-        <div className='relative z-10 h-full flex items-center justify-center'>
-          <div className='text-center text-white'>
-            <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
-              Professional Catering Services
-            </h1>
-            <p className='text-[20px] max-w-[600px] mx-auto'>
-              Delicious, fresh meals prepared with love for your special occasions
-            </p>
+      {cms !== null && (
+        <div className='relative h-[400px] bg-cover bg-center'
+             style={{ backgroundImage: `url(${heroBg})` }}>
+          <div className='absolute inset-0 bg-black/60'></div>
+          <div className='relative z-10 h-full flex items-center justify-center'>
+            <div className='text-center text-white'>
+              <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
+                {heroTitle}
+              </h1>
+              <p className='text-[20px] max-w-[600px] mx-auto'>
+                {heroDescription}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className='container mx-auto px-4 py-16'>
         {/* Introduction Section */}
@@ -57,33 +81,21 @@ const Catering = () => {
             At Phokela Guest House, we believe that great food brings people together. Our experienced chefs prepare delicious meals using fresh, locally-sourced ingredients. Whether you're hosting a corporate event, celebrating a special occasion, or need daily meal services, we have the perfect catering solution for you.
           </p>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-8 mt-12'>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>👨‍🍳</span>
+            {highlights.map((h, i) => (
+              <div key={i} className='text-center'>
+                <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <span className='text-white text-2xl'>{h.icon}</span>
+                </div>
+                <h3 className='font-semibold text-[20px] mb-2'>{h.title}</h3>
+                <p className='text-gray-600'>{h.desc}</p>
               </div>
-              <h3 className='font-semibold text-[20px] mb-2'>Expert Chefs</h3>
-              <p className='text-gray-600'>Experienced culinary professionals passionate about great food</p>
-            </div>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>🥬</span>
-              </div>
-              <h3 className='font-semibold text-[20px] mb-2'>Fresh Ingredients</h3>
-              <p className='text-gray-600'>Locally-sourced, fresh ingredients for the best flavor and quality</p>
-            </div>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>🍽️</span>
-              </div>
-              <h3 className='font-semibold text-[20px] mb-2'>Custom Menus</h3>
-              <p className='text-gray-600'>Tailored menu options to suit your preferences and dietary needs</p>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Catering Services */}
         <div className='mb-16'>
-          <h2 className='font-primary text-[35px] text-center mb-12'>Our Catering Packages</h2>
+          <h2 className='font-primary text-[35px] text-center mb-12'>{packagesHeading}</h2>
 
           {loading ? (
             <div className='text-center py-12'>
@@ -181,15 +193,15 @@ const Catering = () => {
 
         {/* Call to Action */}
         <div className='bg-accent/10 rounded-lg p-12 text-center'>
-          <h2 className='font-primary text-[32px] mb-4'>Ready to Place Your Order?</h2>
+          <h2 className='font-primary text-[32px] mb-4'>{ctaHeading}</h2>
           <p className='text-gray-600 text-lg mb-6 max-w-[600px] mx-auto'>
-            Contact us to discuss your catering needs and get a custom quote for your event
+            {ctaDescription}
           </p>
           <Link
-            to='/contact'
+            to={ctaBtnLink}
             className='inline-block bg-accent text-white px-8 py-4 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'
           >
-            Contact Us for Catering
+            {ctaBtnText}
           </Link>
         </div>
       </div>

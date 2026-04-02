@@ -10,3 +10,4 @@ export { default as Calendar } from './Calendar';
 export { default as Reports } from './Reports';
 export { default as Settings } from './Settings';
 export { default as Expenses } from './Expenses';
+export { default as ContentManager } from './ContentManager';

@@ -9,6 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node src/scripts/seed-mysql.js",
     "seed:admin": "node src/scripts/seed-admin.js",
+    "seed:cms": "node src/scripts/seed-cms.js",
     "setup-db": "node setup-database.js",
     "setup-db:force": "node setup-database.js --force"
   },

@@ -1,11 +1,41 @@
+import { useState, useEffect } from 'react';
 import { useRoomContext } from '../context/RoomContext';
 import { SpinnerDotted } from 'spinners-react';
 import { Room } from '.';
+import { settingsAPI } from '../services/api';
 
 
-const Rooms = () => {
-
+const Rooms = ({ roomOrder = null }) => {
   const { rooms, loading, filtered, resetRoomFilterData } = useRoomContext();
+  const [heading,     setHeading]     = useState('Our Services & Packages');
+  const [description, setDescription] = useState('From comfortable accommodation to professional catering, conference facilities, and memorable events.\n            Discover our comprehensive range of services designed to meet all your hospitality needs.');
+
+  useEffect(() => {
+    settingsAPI.getByGroup('cms_home')
+      .then(res => {
+        if (res.success && res.data) {
+          if (res.data.services_heading)     setHeading(res.data.services_heading);
+          if (res.data.services_description) setDescription(res.data.services_description);
+        }
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  const orderedRooms = (() => {
+    if (filtered || !roomOrder) return rooms;
+    try {
+      const order = JSON.parse(roomOrder);
+      if (!Array.isArray(order) || order.length === 0) return rooms;
+      const indexMap = Object.fromEntries(order.map((id, i) => [String(id), i]));
+      return [...rooms].sort((a, b) => {
+        const ai = indexMap[String(a.id)] ?? Infinity;
+        const bi = indexMap[String(b.id)] ?? Infinity;
+        return ai - bi;
+      });
+    } catch {
+      return rooms;
+    }
+  })();
 
   return (
     <section id='rooms-section' className='py-24'>
@@ -23,10 +53,9 @@ const Rooms = () => {
 
         <div className='text-center'>
           <p className='font-tertiary uppercase text-[13px] sm:text-[15px] tracking-[4px] sm:tracking-[6px]'>Phokela Guest House</p>
-          <h2 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4 lg:mb-6'>Our Services &amp; Packages</h2>
+          <h2 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4 lg:mb-6'>{heading}</h2>
           <p className='text-[16px] lg:text-[18px] text-gray-600 max-w-[600px] mx-auto mb-8 px-4 lg:px-0'>
-            From comfortable accommodation to professional catering, conference facilities, and memorable events.
-            Discover our comprehensive range of services designed to meet all your hospitality needs.
+            {description}
           </p>
         </div>
 
@@ -34,7 +63,7 @@ const Rooms = () => {
         {filtered && (
           <div className='flex items-center justify-between bg-accent/10 border border-accent rounded-lg px-4 py-3 mb-6 max-w-xl mx-auto'>
             <span className='text-sm text-accent font-medium'>
-              🔍 Showing filtered results ({rooms.length} found)
+              🔍 Showing filtered results ({orderedRooms.length} found)
             </span>
             <button
               onClick={resetRoomFilterData}
@@ -47,8 +76,8 @@ const Rooms = () => {
 
         <div className='grid grid-cols-1 max-w-sm mx-auto gap-[20px] sm:gap-[30px] md:grid-cols-2 md:max-w-2xl lg:grid-cols-3 lg:max-w-none lg:mx-0'>
           {
-            rooms.length > 0
-              ? rooms.map(room =>
+            orderedRooms.length > 0
+              ? orderedRooms.map(room =>
                   <Room key={room.id} room={room} />
                 )
               : filtered && (

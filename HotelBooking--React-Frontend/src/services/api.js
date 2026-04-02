@@ -409,8 +409,13 @@ export const settingsAPI = {
     return apiRequest('/settings');
   },
 
-  // Get settings by group
+  // Get settings by group — uses public endpoint (no auth required)
   getByGroup: async (group) => {
+    return apiRequest(`/settings/public/${group}`);
+  },
+
+  // Get settings by group — authenticated (admin only)
+  getByGroupAdmin: async (group) => {
     return apiRequest(`/settings/${group}`);
   },
 
@@ -462,6 +467,23 @@ export const adminAPI = {
     const queryParams = new URLSearchParams(params).toString();
     const endpoint = queryParams ? `/admin/reports/revenue?${queryParams}` : '/admin/reports/revenue';
     return apiRequest(endpoint);
+  },
+};
+
+// Uploads API — uses raw fetch (multipart/form-data, not JSON)
+export const uploadsAPI = {
+  uploadSingle: async (file) => {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/uploads/single`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new APIError(data.message || 'Upload failed', response.status, data);
+    return data;
   },
 };
 
