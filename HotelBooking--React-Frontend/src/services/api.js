@@ -487,6 +487,31 @@ export const uploadsAPI = {
   },
 };
 
+// Blog API
+export const blogAPI = {
+  // Public — no auth
+  getPublic: async ({ page = 1, limit = 6, category } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (category) params.set('category', category);
+    return apiRequest(`/blog/public?${params}`);
+  },
+  getPublicBySlug: async (slug) => apiRequest(`/blog/public/${slug}`),
+  getCategories: async () => apiRequest('/blog/public/categories'),
+  search: async ({ q = '', category, page = 1, limit = 6 } = {}) => {
+    const params = new URLSearchParams({ q, page, limit });
+    if (category) params.set('category', category);
+    return apiRequest(`/blog/public/search?${params}`);
+  },
+
+  // Admin — auth required
+  getAll: async () => apiRequest('/blog'),
+  getById: async (id) => apiRequest(`/blog/${id}`),
+  create: async (data) => apiRequest('/blog', { method: 'POST', body: JSON.stringify(data) }),
+  update: async (id, data) => apiRequest(`/blog/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateStatus: async (id, status) => apiRequest(`/blog/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  delete: async (id) => apiRequest(`/blog/${id}`, { method: 'DELETE' }),
+};
+
 // Health check
 export const healthCheck = async () => {
   return apiRequest('/health');

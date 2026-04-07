@@ -47,6 +47,18 @@ router.get('/:group', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/settings/upload
+// @desc    Upload a CMS image (logo, hero bg, etc.) and return its URL
+// @access  Private
+router.post('/upload', auth, async (req, res) => {
+  const { upload } = require('../config/cloudinary');
+  upload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ success: false, message: err.message });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    res.json({ success: true, data: { url: req.file.path } });
+  });
+});
+
 // @route   POST /api/settings
 // @desc    Update or create settings (bulk)
 router.post('/', auth, async (req, res) => {

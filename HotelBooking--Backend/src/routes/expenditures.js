@@ -81,20 +81,109 @@ router.patch('/templates/:id/pause', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/expenditures/summary
+// @desc    Expenditure summary stats (totals by period and category)
+router.get('/summary', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    const thisMonthStart = new Date(y, m, 1);
+    const thisMonthEnd   = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    const lastMonthStart = new Date(y, m - 1, 1);
+    const lastMonthEnd   = new Date(y, m, 0, 23, 59, 59, 999);
+    const ytdStart       = new Date(y, 0, 1);
+    const ytdEnd         = new Date(y, 11, 31, 23, 59, 59, 999);
+
+    const [total, thisMonth, lastMonth, ytd] = await Promise.all([
+      Expenditure.sum('amount'),
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [thisMonthStart, thisMonthEnd] } } }),
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [lastMonthStart, lastMonthEnd] } } }),
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [ytdStart, ytdEnd] } } }),
+    ]);
+
+    // Breakdown by category for current month
+    const { sequelize: seq } = require('../config/database-mysql');
+    const byCategory = await Expenditure.findAll({
+      attributes: ['category', [seq.fn('SUM', seq.col('amount')), 'total']],
+      where: { date: { [Op.between]: [thisMonthStart, thisMonthEnd] } },
+      group: ['category'],
+      raw: true,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        allTime:   parseFloat(total)     || 0,
+        thisMonth: parseFloat(thisMonth) || 0,
+        lastMonth: parseFloat(lastMonth) || 0,
+        ytd:       parseFloat(ytd)       || 0,
+        byCategory,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @route   POST /api/expenditures/upload
+// @desc    Upload a receipt image for an expenditure
+router.post('/upload', auth, async (req, res) => {
+  const { upload } = require('../config/cloudinary');
+  upload.single('receipt')(req, res, async (err) => {
+    if (err) return res.status(400).json({ success: false, message: err.message });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    res.json({
+      success: true,
+      data: { url: req.file.path },
+    });
+  });
+});
+
+// @route   GET /api/expenditures/:id
+// @desc    Get a single expenditure by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const expenditure = await Expenditure.findByPk(req.params.id);
+    if (!expenditure) return res.status(404).json({ success: false, message: 'Expenditure not found' });
+    res.json({ success: true, data: expenditure });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // @route   GET /api/expenditures
 // @desc    Get all expenditures with filtering
 router.get('/', auth, async (req, res) => {
   try {
-    const { category, startDate, endDate, page = 1, limit = 10 } = req.query;
+    const {
+      category, startDate, endDate,
+      search,
+      sortBy = 'date', sortOrder = 'DESC',
+      page = 1, limit = 10,
+    } = req.query;
     const where = {};
 
     if (category) where.category = category;
-    
+
     if (startDate || endDate) {
       where.date = {};
       if (startDate) where.date[Op.gte] = startDate;
       if (endDate) where.date[Op.lte] = endDate;
     }
+
+    if (search) {
+      where[Op.or] = [
+        { title:       { [Op.like]: `%${search}%` } },
+        { description: { [Op.like]: `%${search}%` } },
+        { reference:   { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const allowedSort = ['date', 'amount', 'title', 'category', 'createdAt'];
+    const orderCol = allowedSort.includes(sortBy) ? sortBy : 'date';
+    const orderDir = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -102,7 +191,7 @@ router.get('/', auth, async (req, res) => {
 
     const { count, rows: expenditures } = await Expenditure.findAndCountAll({
       where,
-      order: [['date', 'DESC'], ['createdAt', 'DESC']],
+      order: [[orderCol, orderDir]],
       limit: limitNum,
       offset
     });

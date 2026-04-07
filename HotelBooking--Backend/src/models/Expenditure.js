@@ -62,6 +62,18 @@ const Expenditure = sequelize.define('Expenditure', {
     defaultValue: false,
     comment: 'When true, the scheduler skips this recurring template',
   },
+  receiptUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'URL to uploaded receipt or invoice image',
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'References the recurring template expenditure that generated this entry',
+  },
 }, {
   tableName: 'expenditures',
   timestamps: true,

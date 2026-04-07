@@ -4,6 +4,7 @@ const Contact = require('./Contact');
 const Room = require('./Room');
 const Expenditure = require('./Expenditure');
 const Setting = require('./Setting');
+const BlogPost = require('./BlogPost');
 
 // Define relationships
 Service.hasMany(Booking, { foreignKey: 'serviceId', as: 'bookings' });
@@ -22,4 +23,5 @@ module.exports = {
   User,
   Expenditure,
   Setting,
+  BlogPost,
 };

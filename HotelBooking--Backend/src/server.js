@@ -22,6 +22,7 @@ const uploadRoutes = require('./routes/uploads');
 const payfastRoutes = require('./routes/payfast');
 const expenditureRoutes = require('./routes/expenditures');
 const settingRoutes = require('./routes/settings');
+const blogRoutes = require('./routes/blog');
 const { startRecurringExpensesScheduler } = require('./schedulers/recurringExpenses');
 
 const app = express();
@@ -110,6 +111,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/payfast', payfastRoutes);
 app.use('/api/expenditures', expenditureRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

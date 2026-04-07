@@ -13,7 +13,14 @@ router.get('/dashboard', auth, async (req, res) => {
     const today = new Date();
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const startOfMonth  = new Date(y, m, 1);
+    const endOfMonth    = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    const startOfLastMonth = new Date(y, m - 1, 1);
+    const endOfLastMonth   = new Date(y, m, 0, 23, 59, 59, 999);
+    const startOfYear   = new Date(y, 0, 1);
+    const endOfYear     = new Date(y, 11, 31, 23, 59, 59, 999);
 
     // Quick stats
     const [
@@ -33,10 +40,18 @@ router.get('/dashboard', auth, async (req, res) => {
       Booking.count({ where: { createdAt: { [Op.gte]: startOfWeek } } }),
       Booking.count({ where: { status: 'pending' } }),
       Contact.count({ where: { status: 'new' } }),
-      Expenditure.sum('amount', { where: { date: { [Op.gte]: startOfMonth } } })
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [startOfMonth, endOfMonth] } } })
     ]);
 
     const thisMonthExpenses = parseFloat(thisMonthExpensesResult || 0);
+
+    // Extra expense periods for net profit stats
+    const [lastMonthExpensesResult, ytdExpensesResult] = await Promise.all([
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [startOfLastMonth, endOfLastMonth] } } }),
+      Expenditure.sum('amount', { where: { date: { [Op.between]: [startOfYear, endOfYear] } } }),
+    ]);
+    const lastMonthExpenses = parseFloat(lastMonthExpensesResult || 0);
+    const ytdExpenses       = parseFloat(ytdExpensesResult || 0);
 
     // Fetch all confirmed/completed bookings for the last 7 months to calculate revenue in JS
     const sevenMonthsAgo = new Date();
@@ -51,19 +66,20 @@ router.get('/dashboard', auth, async (req, res) => {
       attributes: ['id', 'pricing', 'createdAt']
     });
 
-    // Calculate this month revenue
+    // Calculate this month / last month / YTD revenue
     let thisMonthRevenue = 0;
+    let lastMonthRevenue = 0;
+    let ytdRevenue       = 0;
     const monthlyOverviewMap = {};
 
     revenueBookings.forEach(booking => {
       const pricing = booking.pricing;
       const amount = parseFloat(pricing?.totalAmount || 0);
       const bookingDate = new Date(booking.createdAt);
-      
-      // Add to this month revenue if applicable
-      if (bookingDate >= startOfMonth) {
-        thisMonthRevenue += amount;
-      }
+
+      if (bookingDate >= startOfMonth  && bookingDate <= endOfMonth)    thisMonthRevenue += amount;
+      if (bookingDate >= startOfLastMonth && bookingDate <= endOfLastMonth) lastMonthRevenue += amount;
+      if (bookingDate >= startOfYear   && bookingDate <= endOfYear)     ytdRevenue += amount;
 
       // Add to monthly overview
       const monthKey = bookingDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
@@ -142,9 +158,15 @@ router.get('/dashboard', auth, async (req, res) => {
           totalContacts,
           todayBookings,
           thisWeekBookings,
-          thisMonthRevenue: thisMonthRevenue || 0,
+          thisMonthRevenue:    thisMonthRevenue || 0,
           thisMonthExpenses,
-          thisMonthNetProfit: (thisMonthRevenue || 0) - thisMonthExpenses,
+          thisMonthNetProfit:  (thisMonthRevenue || 0) - thisMonthExpenses,
+          lastMonthRevenue:    lastMonthRevenue || 0,
+          lastMonthExpenses,
+          lastMonthNetProfit:  (lastMonthRevenue || 0) - lastMonthExpenses,
+          ytdRevenue:          ytdRevenue || 0,
+          ytdExpenses,
+          ytdNetProfit:        (ytdRevenue || 0) - ytdExpenses,
           pendingBookings,
           newContacts
         },
@@ -247,36 +269,105 @@ router.get('/reports/revenue', auth, async (req, res) => {
       matchQuery.createdAt = { [Op.gte]: startDate, [Op.lte]: endDate };
     }
 
-    // Revenue by category (skip for now - no bookings yet)
-    const revenueByCategory = [];
+    // Fetch all matching bookings with pricing
+    const bookings = await Booking.findAll({
+      where: matchQuery,
+      attributes: ['id', 'pricing', 'serviceSnapshot', 'bookingDetails', 'roomId', 'roomQuantity', 'createdAt'],
+    });
 
+    // ── Revenue by category ───────────────────────────────────────────────────
+    const categoryMap = {};
+    bookings.forEach(b => {
+      const cat = b.serviceSnapshot?.category || 'other';
+      const amt = parseFloat(b.pricing?.totalAmount || 0);
+      if (!categoryMap[cat]) categoryMap[cat] = { category: cat, revenue: 0, bookings: 0 };
+      categoryMap[cat].revenue   += amt;
+      categoryMap[cat].bookings  += 1;
+    });
+    const revenueByCategory = Object.values(categoryMap).sort((a, b) => b.revenue - a.revenue);
 
-    // Revenue over time (skip for now - no bookings yet)
-    const revenueOverTime = [];
+    // ── Revenue over time (monthly) ───────────────────────────────────────────
+    const timeMap = {};
+    bookings.forEach(b => {
+      const d = new Date(b.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      if (!timeMap[key]) timeMap[key] = { month: label, sortKey: key, revenue: 0, bookings: 0 };
+      timeMap[key].revenue  += parseFloat(b.pricing?.totalAmount || 0);
+      timeMap[key].bookings += 1;
+    });
+    const revenueOverTime = Object.values(timeMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
-    // Total revenue stats (skip for now - no bookings yet)
+    // ── Total stats ───────────────────────────────────────────────────────────
+    const amounts = bookings.map(b => parseFloat(b.pricing?.totalAmount || 0));
+    const totalRevenue  = amounts.reduce((s, a) => s + a, 0);
+    const totalBookings = bookings.length;
     const totalStats = {
-      totalRevenue: 0,
-      totalBookings: 0,
-      avgBookingValue: 0,
-      maxBookingValue: 0,
-      minBookingValue: 0
+      totalRevenue,
+      totalBookings,
+      avgBookingValue: totalBookings ? totalRevenue / totalBookings : 0,
+      maxBookingValue: amounts.length ? Math.max(...amounts) : 0,
+      minBookingValue: amounts.length ? Math.min(...amounts) : 0,
     };
 
+    // ── Occupancy & RevPAR (accommodation bookings only) ─────────────────────
+    const rooms = await Room.findAll({ attributes: ['id', 'totalQuantity', 'price'] });
+    const totalRoomInventory = rooms.reduce((s, r) => s + (r.totalQuantity || 1), 0);
+    const avgRoomRate = totalRoomInventory
+      ? rooms.reduce((s, r) => s + parseFloat(r.price) * (r.totalQuantity || 1), 0) / totalRoomInventory
+      : 0;
+
+    // Determine period length in days
+    let periodDays = 30; // default
+    if (period === 'month' && year && month) {
+      periodDays = new Date(parseInt(year), parseInt(month), 0).getDate();
+    } else if (period === 'year' && year) {
+      const isLeap = (parseInt(year) % 4 === 0 && parseInt(year) % 100 !== 0) || parseInt(year) % 400 === 0;
+      periodDays = isLeap ? 366 : 365;
+    }
+
+    const totalAvailableRoomNights = totalRoomInventory * periodDays;
+
+    let occupiedRoomNights = 0;
+    let roomRevenue = 0;
+    bookings.forEach(b => {
+      if (b.serviceSnapshot?.category === 'accommodation' && b.bookingDetails) {
+        const nights = b.bookingDetails.nights ||
+          (b.bookingDetails.checkIn && b.bookingDetails.checkOut
+            ? Math.ceil((new Date(b.bookingDetails.checkOut) - new Date(b.bookingDetails.checkIn)) / 86400000)
+            : 1);
+        const qty = b.roomQuantity || 1;
+        occupiedRoomNights += nights * qty;
+        roomRevenue += parseFloat(b.pricing?.totalAmount || 0);
+      }
+    });
+
+    const occupancyRate = totalAvailableRoomNights
+      ? (occupiedRoomNights / totalAvailableRoomNights) * 100
+      : 0;
+    const revPAR = totalAvailableRoomNights
+      ? roomRevenue / totalAvailableRoomNights
+      : 0;
+    const adr = occupiedRoomNights  // Average Daily Rate
+      ? roomRevenue / occupiedRoomNights
+      : 0;
 
     res.json({
       success: true,
       data: {
         revenueByCategory,
         revenueOverTime,
-        totalStats: totalStats || {
-          totalRevenue: 0,
-          totalBookings: 0,
-          avgBookingValue: 0,
-          maxBookingValue: 0,
-          minBookingValue: 0
-        }
-      }
+        totalStats,
+        occupancy: {
+          totalRooms:             totalRoomInventory,
+          totalAvailableNights:   totalAvailableRoomNights,
+          occupiedNights:         occupiedRoomNights,
+          occupancyRate:          parseFloat(occupancyRate.toFixed(2)),
+          adr:                    parseFloat(adr.toFixed(2)),
+          revPAR:                 parseFloat(revPAR.toFixed(2)),
+          avgRoomRate:            parseFloat(avgRoomRate.toFixed(2)),
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
