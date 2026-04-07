@@ -1,0 +1,36 @@
+# Frontend Dockerfile - Multi-stage build
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Accept build arguments
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+# Copy frontend package files first for faster build caching
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the frontend code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install serve
+RUN npm install -g serve
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 3000
+
+# Start application (Railway uses PORT env var)
+CMD sh -c "serve -s dist -l ${PORT:-3000}"

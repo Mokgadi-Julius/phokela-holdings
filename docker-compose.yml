@@ -1,0 +1,72 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: phokela_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: phokela_root_2025
+      MYSQL_DATABASE: phokela_guest_house
+      MYSQL_USER: phokela_user
+      MYSQL_PASSWORD: phokela_pass_2025
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "phokela_root_2025" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      phokela-network: {}
+
+  backend:
+    build:
+      context: ./HotelBooking--Backend
+      dockerfile: Dockerfile
+    container_name: phokela_backend
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: phokela_guest_house
+      DB_USER: phokela_user
+      DB_PASSWORD: phokela_pass_2025
+      JWT_SECRET: phokela-super-secret-jwt-key-2025
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      - mysql
+    networks:
+      phokela-network: {}
+    volumes:
+      - backend_uploads:/app/src/uploads
+
+  frontend:
+    build:
+      context: ./HotelBooking--React-Frontend
+      dockerfile: Dockerfile.frontend
+    container_name: phokela_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      phokela-network: {}
+
+networks:
+  phokela-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  backend_uploads:
+    driver: local
