@@ -1,5 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ScrollToTop } from '../components';
+import { settingsAPI } from '../services/api';
+
+const parseJsonList = (json, fallback) => {
+  try {
+    const p = JSON.parse(json);
+    return Array.isArray(p) && p.length > 0 ? p : fallback;
+  } catch { return fallback; }
+};
+
+const DEFAULT_SERVICES = ['Accommodation', 'Catering', 'Conferences', 'Events'];
+const DEFAULT_FORM_OPTIONS = [
+  { value: 'accommodation', label: 'Accommodation' },
+  { value: 'catering',      label: 'Catering Services' },
+  { value: 'conference',    label: 'Conference Facilities' },
+  { value: 'events',        label: 'Event Hosting' },
+  { value: 'corporate',     label: 'Corporate Packages' },
+  { value: 'other',         label: 'Other' },
+];
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +27,33 @@ const Contact = () => {
     service: '',
     message: ''
   });
+  const [cms, setCms]         = useState(null);
+  const [general, setGeneral] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      settingsAPI.getByGroup('cms_contact').then(res => res.success ? res.data : {}),
+      settingsAPI.getByGroup('cms_general').then(res => res.success ? res.data : {}),
+    ])
+      .then(([contactData, generalData]) => {
+        setCms(contactData);
+        setGeneral(generalData);
+      })
+      .catch(() => { setCms({}); setGeneral({}); });
+  }, []);
+
+  const pageHeading   = cms?.page_heading   || 'Contact Phokela Guest House';
+  const pageSubtitle  = cms?.page_subtitle  || "Get in touch with us for accommodation, catering, conferences, and event hosting services. We're here to make your experience exceptional.";
+  const hoursWeekday  = cms?.hours_weekday  || 'Mon–Fri: 7:00 AM – 9:00 PM';
+  const hoursWeekend  = cms?.hours_weekend  || 'Sat–Sun: 8:00 AM – 8:00 PM';
+  const mapsEmbedUrl  = cms?.maps_embed_url || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3584.8995959631353!2d28.0376!3d-26.2041!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e950c0b8c0b8c0b%3A0x1e950c0b8c0b8c0b!2sVan%20Riebeck%20Ave%20%26%20Dudu%20Madisha%20Dr%2C%20Johannesburg%2C%20South%20Africa!5e0!3m2!1sen!2sza!4v1640995200000!5m2!1sen!2sza';
+  const contactServices  = parseJsonList(cms?.contact_services,     DEFAULT_SERVICES);
+  const formOptions      = parseJsonList(cms?.form_service_options,  DEFAULT_FORM_OPTIONS);
+
+  const address = general?.address  || '108 Cnr VAN RIEBECK & DUDU MADISHA DRIVE';
+  const phone1  = general?.phone_1  || '083 594 0966';
+  const phone2  = general?.phone_2  || '076 691 1116';
+  const email   = general?.email    || 'admin@phokelaholdings.co.za';
 
   const handleChange = (e) => {
     setFormData({
@@ -38,10 +83,9 @@ const Contact = () => {
       <div className='container mx-auto px-4'>
         {/* Header Section */}
         <div className='text-center mb-8 sm:mb-12'>
-          <h1 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4'>Contact Phokela Guest House</h1>
+          <h1 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4'>{pageHeading}</h1>
           <p className='text-[16px] sm:text-[18px] text-gray-600 max-w-[600px] mx-auto'>
-            Get in touch with us for accommodation, catering, conferences, and event hosting services.
-            We're here to make your experience exceptional.
+            {pageSubtitle}
           </p>
         </div>
 
@@ -59,7 +103,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className='font-semibold text-[18px] mb-1'>Address</h3>
-                  <p className='text-gray-600'>108 Cnr VAN RIEBECK & DUDU MADISHA DRIVE</p>
+                  <p className='text-gray-600'>{address}</p>
                 </div>
               </div>
 
@@ -71,8 +115,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className='font-semibold text-[18px] mb-1'>Phone Numbers</h3>
-                  <p className='text-gray-600'>083 594 0966</p>
-                  <p className='text-gray-600'>076 691 1116</p>
+                  <p className='text-gray-600'>{phone1}</p>
+                  {phone2 && <p className='text-gray-600'>{phone2}</p>}
                 </div>
               </div>
 
@@ -85,7 +129,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className='font-semibold text-[18px] mb-1'>Email</h3>
-                  <p className='text-gray-600'>admin@phokelaholdings.co.za</p>
+                  <p className='text-gray-600'>{email}</p>
                 </div>
               </div>
 
@@ -97,7 +141,20 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className='font-semibold text-[18px] mb-1'>Services</h3>
-                  <p className='text-gray-600'>Accommodation • Catering • Conferences • Events</p>
+                  <p className='text-gray-600'>{contactServices.join(' • ')}</p>
+                </div>
+              </div>
+
+              <div className='flex items-start space-x-4'>
+                <div className='bg-accent w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0'>
+                  <svg className='w-6 h-6 text-white' fill='currentColor' viewBox='0 0 20 20'>
+                    <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' clipRule='evenodd' />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className='font-semibold text-[18px] mb-1'>Opening Hours</h3>
+                  <p className='text-gray-600'>{hoursWeekday}</p>
+                  <p className='text-gray-600'>{hoursWeekend}</p>
                 </div>
               </div>
             </div>
@@ -167,12 +224,9 @@ const Contact = () => {
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent'
                 >
                   <option value=''>Select a service</option>
-                  <option value='accommodation'>Accommodation</option>
-                  <option value='catering'>Catering Services</option>
-                  <option value='conference'>Conference Facilities</option>
-                  <option value='events'>Event Hosting</option>
-                  <option value='corporate'>Corporate Packages</option>
-                  <option value='other'>Other</option>
+                  {formOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -207,7 +261,7 @@ const Contact = () => {
           <h2 className='font-primary text-[22px] sm:text-[26px] lg:text-[30px] mb-6 text-center'>Find Us</h2>
           <div className='rounded-lg overflow-hidden shadow-lg'>
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3584.8995959631353!2d28.0376!3d-26.2041!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e950c0b8c0b8c0b%3A0x1e950c0b8c0b8c0b!2sVan%20Riebeck%20Ave%20%26%20Dudu%20Madisha%20Dr%2C%20Johannesburg%2C%20South%20Africa!5e0!3m2!1sen!2sza!4v1640995200000!5m2!1sen!2sza"
+              src={mapsEmbedUrl}
               width="100%"
               height="300"
               className="sm:h-[400px]"

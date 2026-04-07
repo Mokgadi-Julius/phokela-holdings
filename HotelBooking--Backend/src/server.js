@@ -22,14 +22,18 @@ const uploadRoutes = require('./routes/uploads');
 const payfastRoutes = require('./routes/payfast');
 const expenditureRoutes = require('./routes/expenditures');
 const settingRoutes = require('./routes/settings');
+const blogRoutes = require('./routes/blog');
+const { startRecurringExpensesScheduler } = require('./schedulers/recurringExpenses');
 
 const app = express();
 
 // Trust proxy - Required for Railway and other proxy services
 app.set('trust proxy', true);
 
-// Connect to MySQL Database
-connectDB();
+// Connect to MySQL Database and start schedulers
+connectDB().then(() => {
+  startRecurringExpensesScheduler();
+});
 
 // CORS configuration - MUST BE BEFORE OTHER MIDDLEWARE
 const corsOptions = {
@@ -107,6 +111,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/payfast', payfastRoutes);
 app.use('/api/expenditures', expenditureRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

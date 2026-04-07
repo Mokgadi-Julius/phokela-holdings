@@ -40,6 +40,40 @@ const Expenditure = sequelize.define('Expenditure', {
     allowNull: true,
     comment: 'Invoice number or receipt reference',
   },
+  isRecurring: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  recurringFrequency: {
+    type: DataTypes.ENUM('weekly', 'monthly', 'quarterly'),
+    allowNull: true,
+    defaultValue: null,
+  },
+  nextDueDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Next date this recurring expense should auto-generate',
+  },
+  isPaused: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'When true, the scheduler skips this recurring template',
+  },
+  receiptUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'URL to uploaded receipt or invoice image',
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'References the recurring template expenditure that generated this entry',
+  },
 }, {
   tableName: 'expenditures',
   timestamps: true,

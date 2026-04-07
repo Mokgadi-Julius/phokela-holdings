@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Footer, Header, PageNotFound, WhatsAppButton } from './components';
-import { Home, RoomDetails, Services } from './pages';
+import { Home, RoomDetails, Services, Blog, BlogPost } from './pages';
 import Contact from './pages/Contact';
 import Accommodation from './pages/Accommodation';
 import Catering from './pages/Catering';
@@ -8,10 +9,32 @@ import Events from './pages/Events';
 import Conference from './pages/Conference';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancelled from './pages/PaymentCancelled';
-import { AdminLayout, AdminLogin, Dashboard, Bookings, Rooms, NewBooking, Calendar, Services as AdminServices, Reports, Settings } from './pages/admin';
+import { AdminLayout, AdminLogin, Dashboard, Bookings, Rooms, NewBooking, Calendar, Services as AdminServices, Reports, Settings, Expenses, ContentManager, AdminBlog } from './pages/admin';
+import { settingsAPI } from './services/api';
 
+// CM-43: Inject SEO meta tags from CMS into <head>
+const useSeoMeta = () => {
+  useEffect(() => {
+    settingsAPI.getByGroup('cms_general')
+      .then(res => {
+        if (!res.success) return;
+        const d = res.data;
+        if (d.seo_title)       document.title = d.seo_title;
+        const setMeta = (name, content) => {
+          if (!content) return;
+          let el = document.querySelector(`meta[name="${name}"]`);
+          if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el); }
+          el.setAttribute('content', content);
+        };
+        setMeta('description', d.seo_description);
+        setMeta('keywords',    d.seo_keywords);
+      })
+      .catch(() => {});
+  }, []);
+};
 
 const App = () => {
+  useSeoMeta();
 
   // const paths = [
   //   { path: '/', element: <Home /> },
@@ -93,6 +116,22 @@ const App = () => {
               <WhatsAppButton />
             </>
           } />
+          <Route path={'/blog'} element={
+            <>
+              <Header />
+              <Blog />
+              <Footer />
+              <WhatsAppButton />
+            </>
+          } />
+          <Route path={'/blog/:slug'} element={
+            <>
+              <Header />
+              <BlogPost />
+              <Footer />
+              <WhatsAppButton />
+            </>
+          } />
 
           {/* Payment Routes */}
           <Route path={'/payment/success'} element={<PaymentSuccess />} />
@@ -109,7 +148,10 @@ const App = () => {
             <Route path='services' element={<AdminServices />} />
             <Route path='contacts' element={<div className="p-6 text-center"><h2 className="text-2xl font-bold">Contacts Management</h2><p className="mt-2 text-gray-600">Coming soon...</p></div>} />
             <Route path='reports' element={<Reports />} />
+            <Route path='expenses' element={<Expenses />} />
             <Route path='settings' element={<Settings />} />
+            <Route path='content' element={<ContentManager />} />
+            <Route path='blog' element={<AdminBlog />} />
           </Route>
 
           {/* 404 Route */}

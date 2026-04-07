@@ -1,86 +1,94 @@
 import { ScrollToTop } from '../components';
 import { Link } from 'react-router-dom';
+import { settingsAPI } from '../services/api';
 import images from '../assets';
+import { useState, useEffect } from 'react';
+
+const parseJsonList = (json, fallback) => {
+  try {
+    const p = JSON.parse(json);
+    return Array.isArray(p) && p.length > 0 ? p : fallback;
+  } catch { return fallback; }
+};
+
+const DEFAULT_HIGHLIGHTS = [
+  { icon: '⭐', title: 'Professional Service', description: 'Our team of experienced professionals ensures seamless service delivery' },
+  { icon: '✅', title: 'Quality Assurance',    description: 'We maintain the highest standards in all our services' },
+  { icon: '🔄', title: 'Flexible Options',     description: 'Customizable packages to meet your specific requirements' },
+  { icon: '📦', title: 'All-Inclusive',        description: 'Complete solutions from setup to execution and cleanup' },
+];
+
+const DEFAULT_WHY = [
+  { icon: '🏆', title: 'Quality Guarantee',  desc: 'We maintain the highest standards in all our services to ensure your satisfaction' },
+  { icon: '👨‍💼', title: 'Professional Team', desc: 'Our experienced staff is dedicated to providing exceptional service' },
+  { icon: '📍', title: 'Prime Location',     desc: 'Conveniently located with easy access and ample parking' },
+];
+
+const DEFAULT_BIZ = [
+  { title: 'Conference Rooms',   desc: 'Professional venues equipped with modern technology' },
+  { title: 'Corporate Events',   desc: 'Complete event hosting for business functions' },
+  { title: 'Meeting Facilities', desc: 'Flexible spaces for various meeting formats' },
+  { title: 'Catering Services',  desc: 'Professional catering for corporate events' },
+];
+
+const DEFAULT_PERSONAL = [
+  { title: 'Accommodation',     desc: 'Comfortable rooms and suites for your stay' },
+  { title: 'Event Hosting',     desc: 'Perfect venues for weddings, birthdays, and celebrations' },
+  { title: 'Special Occasions', desc: 'Customized services for milestone events' },
+  { title: 'Catering Solutions', desc: 'Delicious food for all types of celebrations' },
+];
 
 const Services = () => {
-  const services = [
-    {
-      id: 'accommodation',
-      name: 'Accommodation',
-      description: 'Comfortable rooms and suites for your stay',
-      image: images.Room1Img,
-      link: '/accommodation',
-      icon: '🏨'
-    },
-    {
-      id: 'conference',
-      name: 'Conference',
-      description: 'Modern facilities for meetings and conferences',
-      image: images.Room3Img,
-      link: '/conference',
-      icon: '🏢'
-    },
-    {
-      id: 'catering',
-      name: 'Catering',
-      description: 'Delicious meals and catering services',
-      image: images.Slider2,
-      link: '/catering',
-      icon: '🍽️'
-    },
-    {
-      id: 'events',
-      name: 'Events',
-      description: 'Host memorable events and celebrations',
-      image: images.Slider3,
-      link: '/events',
-      icon: '🎉'
-    }
+  const [cms, setCms] = useState(null);
+
+  useEffect(() => {
+    settingsAPI.getByGroup('cms_services')
+      .then(res => setCms(res.success ? res.data : {}))
+      .catch(() => setCms({}));
+  }, []);
+
+  const pageHeading  = cms?.page_heading  || 'Our Services';
+  const pageSubtitle = cms?.page_subtitle || 'Discover our comprehensive range of services designed to meet your accommodation, conference, catering, and event hosting needs';
+  const whyHeading   = cms?.why_choose_heading || 'Why Choose Our Services?';
+
+  const serviceCards = [
+    { id: 'accommodation', name: 'Accommodation', description: cms?.accom_desc      || 'Comfortable rooms and suites for your stay',        image: images.Room1Img, link: '/accommodation', icon: '🏨' },
+    { id: 'conference',    name: 'Conference',    description: cms?.conference_desc  || 'Modern facilities for meetings and conferences',     image: images.Room3Img, link: '/conference',    icon: '🏢' },
+    { id: 'catering',      name: 'Catering',      description: cms?.catering_desc    || 'Delicious meals and catering services',              image: images.Slider2,  link: '/catering',      icon: '🍽️' },
+    { id: 'events',        name: 'Events',        description: cms?.events_desc      || 'Host memorable events and celebrations',             image: images.Slider3,  link: '/events',        icon: '🎉' },
   ];
 
-  const serviceHighlights = [
-    {
-      title: 'Professional Service',
-      description: 'Our team of experienced professionals ensures seamless service delivery',
-      icon: '⭐'
-    },
-    {
-      title: 'Quality Assurance',
-      description: 'We maintain the highest standards in all our services',
-      icon: '✅'
-    },
-    {
-      title: 'Flexible Options',
-      description: 'Customizable packages to meet your specific requirements',
-      icon: '🔄'
-    },
-    {
-      title: 'All-Inclusive',
-      description: 'Complete solutions from setup to execution and cleanup',
-      icon: '📦'
-    }
-  ];
+  const serviceHighlights = [1, 2, 3, 4].map((n, i) => ({
+    icon:        cms?.[`highlight_${n}_icon`]  || DEFAULT_HIGHLIGHTS[i].icon,
+    title:       cms?.[`highlight_${n}_title`] || DEFAULT_HIGHLIGHTS[i].title,
+    description: cms?.[`highlight_${n}_desc`]  || DEFAULT_HIGHLIGHTS[i].description,
+  }));
+
+  const whyBullets    = parseJsonList(cms?.why_choose_bullets, DEFAULT_WHY);
+  const bizServices   = parseJsonList(cms?.biz_services,       DEFAULT_BIZ);
+  const personalServices = parseJsonList(cms?.personal_services, DEFAULT_PERSONAL);
 
   return (
     <div className='min-h-screen pt-[120px] pb-12'>
       <ScrollToTop />
 
       {/* Hero Section */}
-      <div className='relative h-[500px] bg-cover bg-center'
-           style={{ backgroundImage: `url(${images.Slider1})` }}>
-        <div className='absolute inset-0 bg-black/70'></div>
-        <div className='relative z-10 h-full flex items-center justify-center'>
-          <div className='text-center text-white'>
-            <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
-              Our Services
-            </h1>
-            <p className='text-[20px] max-w-[800px] mx-auto'>
-              Discover our comprehensive range of services designed to meet your accommodation, 
-              conference, catering, and event hosting needs
-            </p>
+      {cms !== null && (
+        <div className='relative h-[500px] bg-cover bg-center'
+             style={{ backgroundImage: `url(${images.Slider1})` }}>
+          <div className='absolute inset-0 bg-black/70'></div>
+          <div className='relative z-10 h-full flex items-center justify-center'>
+            <div className='text-center text-white'>
+              <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
+                {pageHeading}
+              </h1>
+              <p className='text-[20px] max-w-[800px] mx-auto'>
+                {pageSubtitle}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className='container mx-auto px-4 py-16'>
         {/* Introduction */}
@@ -108,7 +116,7 @@ const Services = () => {
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>Explore Our Services</h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-            {services.map((service) => (
+            {serviceCards.map((service) => (
               <div key={service.id} className='bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300'>
                 <div className='relative h-64'>
                   <img
@@ -139,100 +147,41 @@ const Services = () => {
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>Service Categories</h2>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-12'>
-            <div className='bg-gray-50 rounded-lg p-8'>
-              <h3 className='font-primary text-[28px] mb-6 text-center text-accent'>Business Services</h3>
-              <ul className='space-y-4'>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Conference Rooms</h4>
-                    <p className='text-gray-600'>Professional venues equipped with modern technology</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Corporate Events</h4>
-                    <p className='text-gray-600'>Complete event hosting for business functions</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Meeting Facilities</h4>
-                    <p className='text-gray-600'>Flexible spaces for various meeting formats</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Catering Services</h4>
-                    <p className='text-gray-600'>Professional catering for corporate events</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-            <div className='bg-gray-50 rounded-lg p-8'>
-              <h3 className='font-primary text-[28px] mb-6 text-center text-accent'>Personal Services</h3>
-              <ul className='space-y-4'>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Accommodation</h4>
-                    <p className='text-gray-600'>Comfortable rooms and suites for your stay</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Event Hosting</h4>
-                    <p className='text-gray-600'>Perfect venues for weddings, birthdays, and celebrations</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Special Occasions</h4>
-                    <p className='text-gray-600'>Customized services for milestone events</p>
-                  </div>
-                </li>
-                <li className='flex items-start'>
-                  <span className='text-accent mr-3 text-xl'>✓</span>
-                  <div>
-                    <h4 className='font-semibold'>Catering Solutions</h4>
-                    <p className='text-gray-600'>Delicious food for all types of celebrations</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
+            {[
+              { heading: 'Business Services',  items: bizServices },
+              { heading: 'Personal Services',  items: personalServices },
+            ].map(col => (
+              <div key={col.heading} className='bg-gray-50 rounded-lg p-8'>
+                <h3 className='font-primary text-[28px] mb-6 text-center text-accent'>{col.heading}</h3>
+                <ul className='space-y-4'>
+                  {col.items.map((item, i) => (
+                    <li key={i} className='flex items-start'>
+                      <span className='text-accent mr-3 text-xl'>✓</span>
+                      <div>
+                        <h4 className='font-semibold'>{item.title}</h4>
+                        <p className='text-gray-600'>{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Why Choose Us */}
         <div className='mb-16'>
-          <h2 className='font-primary text-[35px] text-center mb-12'>Why Choose Our Services?</h2>
+          <h2 className='font-primary text-[35px] text-center mb-12'>{whyHeading}</h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>🏆</span>
+            {whyBullets.map((b, i) => (
+              <div key={i} className='text-center'>
+                <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <span className='text-white text-2xl'>{b.icon}</span>
+                </div>
+                <h3 className='font-semibold text-[20px] mb-3'>{b.title}</h3>
+                <p className='text-gray-600'>{b.desc}</p>
               </div>
-              <h3 className='font-semibold text-[20px] mb-3'>Quality Guarantee</h3>
-              <p className='text-gray-600'>We maintain the highest standards in all our services to ensure your satisfaction</p>
-            </div>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>👨‍💼</span>
-              </div>
-              <h3 className='font-semibold text-[20px] mb-3'>Professional Team</h3>
-              <p className='text-gray-600'>Our experienced staff is dedicated to providing exceptional service</p>
-            </div>
-            <div className='text-center'>
-              <div className='bg-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <span className='text-white text-2xl'>📍</span>
-              </div>
-              <h3 className='font-semibold text-[20px] mb-3'>Prime Location</h3>
-              <p className='text-gray-600'>Conveniently located with easy access and ample parking</p>
-            </div>
+            ))}
           </div>
         </div>
 

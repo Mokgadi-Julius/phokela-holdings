@@ -35,6 +35,19 @@ async function apiRequest(endpoint, options = {}) {
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('adminToken');
+        
+        // Dispatch an event to notify the application
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+        
+        // As a fallback if the app doesn't handle the event, redirect to login
+        if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
+      }
+
       throw new APIError(
         data.message || 'API request failed',
         response.status,
@@ -185,6 +198,14 @@ export const bookingsAPI = {
     });
   },
 
+  // Reschedule booking dates (drag-and-drop)
+  updateDates: async (id, dates) => {
+    return apiRequest(`/bookings/${id}/dates`, {
+      method: 'PATCH',
+      body: JSON.stringify(dates),
+    });
+  },
+
   // Update payment status
   updatePayment: async (id, paymentData) => {
     return apiRequest(`/bookings/${id}/payment`, {
@@ -234,6 +255,14 @@ export const roomsAPI = {
     const queryParams = new URLSearchParams(filters).toString();
     const endpoint = queryParams ? `/rooms?${queryParams}` : '/rooms';
     return apiRequest(endpoint);
+  },
+
+  // Get room availability
+  // Single date:  getAvailability({ date: 'YYYY-MM-DD' })
+  // Date range:   getAvailability({ from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' })
+  getAvailability: async (params) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return apiRequest(`/rooms/availability?${queryParams}`);
   },
 
   // Get room by ID
@@ -337,11 +366,39 @@ export const expendituresAPI = {
     });
   },
 
+  // Update an expenditure
+  update: async (id, data) => {
+    return apiRequest(`/expenditures/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Delete an expenditure
   delete: async (id) => {
     return apiRequest(`/expenditures/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // Get all recurring templates
+  getTemplates: async () => {
+    return apiRequest('/expenditures/templates');
+  },
+
+  // Trigger all due recurring templates now
+  triggerAll: async () => {
+    return apiRequest('/expenditures/templates/trigger', { method: 'POST' });
+  },
+
+  // Force-generate next occurrence for a specific template
+  triggerTemplate: async (id) => {
+    return apiRequest(`/expenditures/templates/${id}/trigger`, { method: 'POST' });
+  },
+
+  // Toggle pause/resume for a recurring template
+  togglePause: async (id) => {
+    return apiRequest(`/expenditures/templates/${id}/pause`, { method: 'PATCH' });
   },
 };
 
@@ -352,8 +409,13 @@ export const settingsAPI = {
     return apiRequest('/settings');
   },
 
-  // Get settings by group
+  // Get settings by group — uses public endpoint (no auth required)
   getByGroup: async (group) => {
+    return apiRequest(`/settings/public/${group}`);
+  },
+
+  // Get settings by group — authenticated (admin only)
+  getByGroupAdmin: async (group) => {
     return apiRequest(`/settings/${group}`);
   },
 
@@ -406,6 +468,48 @@ export const adminAPI = {
     const endpoint = queryParams ? `/admin/reports/revenue?${queryParams}` : '/admin/reports/revenue';
     return apiRequest(endpoint);
   },
+};
+
+// Uploads API — uses raw fetch (multipart/form-data, not JSON)
+export const uploadsAPI = {
+  uploadSingle: async (file) => {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/uploads/single`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new APIError(data.message || 'Upload failed', response.status, data);
+    return data;
+  },
+};
+
+// Blog API
+export const blogAPI = {
+  // Public — no auth
+  getPublic: async ({ page = 1, limit = 6, category } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (category) params.set('category', category);
+    return apiRequest(`/blog/public?${params}`);
+  },
+  getPublicBySlug: async (slug) => apiRequest(`/blog/public/${slug}`),
+  getCategories: async () => apiRequest('/blog/public/categories'),
+  search: async ({ q = '', category, page = 1, limit = 6 } = {}) => {
+    const params = new URLSearchParams({ q, page, limit });
+    if (category) params.set('category', category);
+    return apiRequest(`/blog/public/search?${params}`);
+  },
+
+  // Admin — auth required
+  getAll: async () => apiRequest('/blog'),
+  getById: async (id) => apiRequest(`/blog/${id}`),
+  create: async (data) => apiRequest('/blog', { method: 'POST', body: JSON.stringify(data) }),
+  update: async (id, data) => apiRequest(`/blog/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateStatus: async (id, status) => apiRequest(`/blog/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  delete: async (id) => apiRequest(`/blog/${id}`, { method: 'DELETE' }),
 };
 
 // Health check
