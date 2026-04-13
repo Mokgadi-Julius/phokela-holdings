@@ -5,7 +5,7 @@ import { Room } from '.';
 import { settingsAPI } from '../services/api';
 
 
-const Rooms = ({ roomOrder = null }) => {
+const Rooms = ({ roomOrder = null, sectionHeading = null }) => {
   const { rooms, loading, filtered, resetRoomFilterData } = useRoomContext();
   const [heading,     setHeading]     = useState('Our Services & Packages');
   const [description, setDescription] = useState('From comfortable accommodation to professional catering, conference facilities, and memorable events.\n            Discover our comprehensive range of services designed to meet all your hospitality needs.');
@@ -53,7 +53,7 @@ const Rooms = ({ roomOrder = null }) => {
 
         <div className='text-center'>
           <p className='font-tertiary uppercase text-[13px] sm:text-[15px] tracking-[4px] sm:tracking-[6px]'>Phokela Guest House</p>
-          <h2 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4 lg:mb-6'>{heading}</h2>
+          <h2 className='font-primary text-[28px] sm:text-[35px] lg:text-[45px] mb-4 lg:mb-6'>{sectionHeading || heading}</h2>
           <p className='text-[16px] lg:text-[18px] text-gray-600 max-w-[600px] mx-auto mb-8 px-4 lg:px-0'>
             {description}
           </p>

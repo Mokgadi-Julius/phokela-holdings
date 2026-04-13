@@ -47,7 +47,7 @@ const Accommodation = () => {
         </div>
       )}
 
-      <Rooms roomOrder={roomOrder} />
+      <Rooms roomOrder={roomOrder} sectionHeading='Our Rooms & Accommodation' />
     </div>
   );
 };
