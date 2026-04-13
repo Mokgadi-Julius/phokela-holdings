@@ -25,14 +25,14 @@ export const sliderData = [
         title: 'Welcome to Phokela Guest House',
         bg: images.Slider1,
         btnNext: 'Explore Our Services',
-        link: '/accommodation'
+        link: '/services'
     },
     {
         id: 2,
         title: 'Premium Accommodation & Event Hosting',
         bg: images.Slider2,
         btnNext: 'Book Your Stay',
-        link: '/events'
+        link: '/accommodation'
     },
     {
         id: 3,
