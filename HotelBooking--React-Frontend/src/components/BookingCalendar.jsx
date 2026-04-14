@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -646,8 +646,9 @@ const BookingCalendar = ({ refreshKey }) => {
   const [newBookingDates, setNewBookingDates] = useState(null);
 
   // Fetch ALL bookings from the API (high limit so calendar shows everything)
-  const fetchBookings = async () => {
+  const fetchBookings = async (isInitial = false) => {
     try {
+      if (isInitial) setLoading(true);
       const response = await bookingsAPI.getAll({ limit: 1000, page: 1 });
       if (response.success) {
         setBookings(response.data || []);
@@ -655,7 +656,7 @@ const BookingCalendar = ({ refreshKey }) => {
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
@@ -679,13 +680,12 @@ const BookingCalendar = ({ refreshKey }) => {
   }, []);
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings(true);
 
     // Set up BroadcastChannel to listen for new bookings
     const bookingChannel = new BroadcastChannel('booking_updates');
     bookingChannel.onmessage = (event) => {
       if (event.data === 'new_booking' || event.data === 'booking_updated') {
-        console.log('🔄 Booking update received via BroadcastChannel, refetching...');
         fetchBookings();
       }
     };
@@ -1067,10 +1067,7 @@ const BookingCalendar = ({ refreshKey }) => {
           </select>
 
           <button
-            onClick={() => {
-              setLoading(true);
-              fetchBookings();
-            }}
+            onClick={() => fetchBookings()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Refresh
