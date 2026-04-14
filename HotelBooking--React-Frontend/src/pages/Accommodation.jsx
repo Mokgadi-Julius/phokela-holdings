@@ -20,23 +20,21 @@ const Accommodation = () => {
     <div>
       <ScrollToTop />
 
-      {/* Hero banner — shown once CMS has loaded */}
-      {cms !== null && (
-        <div className='relative bg-gray-900 h-[280px] sm:h-[340px] flex items-center justify-center text-center overflow-hidden'>
-          <div className='absolute inset-0 bg-black/60' />
-          <div className='relative z-10 px-4'>
-            <p className='font-tertiary uppercase tracking-[6px] text-[12px] text-gray-300 mb-3'>
-              Phokela Guest House
-            </p>
-            <h1 className='font-primary text-[28px] sm:text-[40px] lg:text-[52px] text-white uppercase tracking-[2px] leading-tight mb-4'>
-              {title}
-            </h1>
-            <p className='text-[15px] sm:text-[18px] text-gray-300 max-w-[600px] mx-auto'>
-              {subtitle}
-            </p>
-          </div>
+      {/* Hero banner */}
+      <div className='relative bg-gray-900 h-[280px] sm:h-[340px] flex items-center justify-center text-center overflow-hidden'>
+        <div className='absolute inset-0 bg-black/60' />
+        <div className='relative z-10 px-4'>
+          <p className='font-tertiary uppercase tracking-[6px] text-[12px] text-gray-300 mb-3'>
+            Phokela Guest House
+          </p>
+          <h1 className='font-primary text-[28px] sm:text-[40px] lg:text-[52px] text-white uppercase tracking-[2px] leading-tight mb-4'>
+            {title}
+          </h1>
+          <p className='text-[15px] sm:text-[18px] text-gray-300 max-w-[600px] mx-auto'>
+            {subtitle}
+          </p>
         </div>
-      )}
+      </div>
 
       {/* Optional description block */}
       {description && (
