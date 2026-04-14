@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
 
     // Listen for booking updates
     const bookingChannel = new BroadcastChannel('booking_updates');
@@ -28,22 +28,25 @@ const Dashboard = () => {
     };
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const response = await adminAPI.getDashboard();
       if (response.success) {
         setDashboardData(response.data);
+        setError(null);
+      } else {
+        setError('Failed to load dashboard data');
       }
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error('Dashboard error:', err);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading && !dashboardData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
