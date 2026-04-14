@@ -70,8 +70,9 @@ const BookingModal = ({ service, isOpen, onClose, bookingDetails }) => {
 
         // Validate against the service's maximum capacity before calling the API
         const maxAllowed = service?.maxPerson;
-        if (maxAllowed && bookingDetails.adults > maxAllowed) {
-          setError(`This service allows a maximum of ${maxAllowed} guests.`);
+        const totalGuests = bookingDetails.adults + bookingDetails.children;
+        if (maxAllowed && totalGuests > maxAllowed) {
+          setError(`This service allows a maximum of ${maxAllowed} guests (adults + children).`);
           setLoading(false);
           return;
         }

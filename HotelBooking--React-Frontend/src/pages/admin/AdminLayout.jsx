@@ -28,7 +28,6 @@ const AdminLayout = () => {
 
       // Listen for local updates (Same-tab)
       const handleLocalUpdate = () => {
-        console.log('🔄 Local booking update received, fetching notifications...');
         fetchNotifications();
       };
       window.addEventListener('local_booking_update', handleLocalUpdate);
@@ -57,7 +56,6 @@ const AdminLayout = () => {
 
   const fetchNotifications = async () => {
     try {
-      console.log('🔔 Fetching notifications...');
       const response = await adminAPI.getDashboard();
       if (response.success) {
         // Get already seen IDs from localStorage
@@ -84,7 +82,6 @@ const AdminLayout = () => {
         
         // ONLY count those that are NOT in seenIds
         const newUnreadCount = mappedNotifications.filter(n => !n.read).length;
-        console.log(`🔔 Unread notifications: ${newUnreadCount}`);
         setUnreadCount(newUnreadCount);
       }
     } catch (err) {
@@ -94,8 +91,6 @@ const AdminLayout = () => {
 
   const markAllAsRead = () => {
     if (notifications.length === 0) return;
-    
-    console.log('🔔 Marking all current notifications as read...');
     const seenIds = JSON.parse(localStorage.getItem('seenNotificationIds') || '[]');
     const currentIds = notifications.map(n => n.id);
     
@@ -113,7 +108,6 @@ const AdminLayout = () => {
   };
 
   const markAsRead = (id) => {
-    console.log(`🔔 Marking notification ${id} as read...`);
     const seenIds = JSON.parse(localStorage.getItem('seenNotificationIds') || '[]');
     if (!seenIds.includes(id)) {
       const updatedSeenIds = [...seenIds, id];
