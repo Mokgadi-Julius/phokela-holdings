@@ -27,6 +27,7 @@ function formatDate(d) {
 const AdminBlog = () => {
   const [posts, setPosts]         = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editPost, setEditPost]   = useState(null); // null = create mode
   const [form, setForm]           = useState(EMPTY_FORM);
@@ -39,9 +40,16 @@ const AdminBlog = () => {
 
   const load = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const res = await blogAPI.getAll();
-      if (res.success) setPosts(res.data);
+      if (res.success) {
+        setPosts(res.data);
+      } else {
+        setLoadError('Failed to load blog posts.');
+      }
+    } catch {
+      setLoadError('Failed to load blog posts. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -137,7 +145,9 @@ const AdminBlog = () => {
     try {
       await blogAPI.updateStatus(post.id, next);
       load();
-    } catch { /* silent */ }
+    } catch {
+      alert('Failed to update post status. Please try again.');
+    }
   };
 
   const handleDelete = async (post) => {
@@ -145,12 +155,14 @@ const AdminBlog = () => {
     try {
       await blogAPI.delete(post.id);
       load();
-    } catch { /* silent */ }
+    } catch {
+      alert('Failed to delete post. Please try again.');
+    }
   };
 
   const filtered = posts.filter(p =>
-    p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+    (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.category || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -179,13 +191,21 @@ const AdminBlog = () => {
         />
       </div>
 
+      {/* Load error */}
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center justify-between">
+          <span>{loadError}</span>
+          <button onClick={load} className="ml-4 text-sm font-medium underline hover:no-underline">Retry</button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
-            {search ? 'No posts match your search.' : 'No blog posts yet. Create your first post!'}
+            {loadError ? 'Failed to load posts.' : search ? 'No posts match your search.' : 'No blog posts yet. Create your first post!'}
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -208,7 +228,7 @@ const AdminBlog = () => {
                   </td>
                   <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{post.category}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[post.status]}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[post.status] || 'bg-gray-100 text-gray-500'}`}>
                       {post.status}
                     </span>
                   </td>
