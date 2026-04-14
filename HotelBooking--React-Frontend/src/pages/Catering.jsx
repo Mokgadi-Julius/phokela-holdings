@@ -56,22 +56,20 @@ const Catering = () => {
       <ScrollToTop />
 
       {/* Hero Section */}
-      {cms !== null && (
-        <div className='relative h-[400px] bg-cover bg-center'
-             style={{ backgroundImage: `url(${heroBg})` }}>
-          <div className='absolute inset-0 bg-black/60'></div>
-          <div className='relative z-10 h-full flex items-center justify-center'>
-            <div className='text-center text-white'>
-              <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
-                {heroTitle}
-              </h1>
-              <p className='text-[20px] max-w-[600px] mx-auto'>
-                {heroDescription}
-              </p>
-            </div>
+      <div className='relative h-[400px] bg-cover bg-center'
+           style={{ backgroundImage: `url(${heroBg})` }}>
+        <div className='absolute inset-0 bg-black/60'></div>
+        <div className='relative z-10 h-full flex items-center justify-center'>
+          <div className='text-center text-white'>
+            <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
+              {heroTitle}
+            </h1>
+            <p className='text-[20px] max-w-[600px] mx-auto'>
+              {heroDescription}
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='container mx-auto px-4 py-16'>
         {/* Introduction Section */}
