@@ -16,20 +16,21 @@ export const RoomContext = ({ children }) => {
     return parseInt(adultsStr) + parseInt(kidsStr);
   };
 
-  const fetchRooms = async (filters = {}) => {
-    setLoading(true);
+  const fetchRooms = async (filters = {}, isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const res = await roomsAPI.getAll(filters);
-      setRooms(res.data);
+      setRooms(res.data || []);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
       setRooms([]);
+    } finally {
+      if (isInitial) setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    fetchRooms();
+    fetchRooms({}, true);
   }, []);
 
   const resetRoomFilterData = () => {
@@ -39,7 +40,7 @@ export const RoomContext = ({ children }) => {
     fetchRooms();
   };
 
-  const handleCheck = (e, checkIn = null, checkOut = null) => {
+  const handleCheck = (e, _checkIn = null, _checkOut = null) => {
     e.preventDefault();
 
     const total = getTotal(adults, kids);

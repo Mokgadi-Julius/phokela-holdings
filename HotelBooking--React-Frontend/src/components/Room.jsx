@@ -1,4 +1,4 @@
-import { BsArrowsFullscreen, BsPeople } from 'react-icons/bs';
+import { BsPeople } from 'react-icons/bs';
 import { Link } from 'react-router-dom';
 import { getMainImageUrl } from '../utils/imageHelpers';
 
@@ -43,7 +43,9 @@ const Room = ({ room }) => {
           <h3 className="h3 text-lg sm:text-xl lg:text-2xl">{name}</h3>
         </Link>
 
-        <p className='max-w-[300px] mx-auto mb-3 lg:mb-6 text-sm sm:text-base'>{description?.slice(0, 56)}..</p>
+        {description && (
+          <p className='max-w-[300px] mx-auto mb-3 lg:mb-6 text-sm sm:text-base'>{description.slice(0, 56)}..</p>
+        )}
       </div>
 
       {/* button */}
