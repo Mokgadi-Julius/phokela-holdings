@@ -1493,7 +1493,7 @@ const AccommodationPreview = ({ v, rooms }) => {
       {/* Room cards — real rooms if loaded, placeholders otherwise */}
       <div className="grid grid-cols-3 gap-2 p-3">
         {orderedRooms.length > 0
-          ? orderedRooms.slice(0, 6).map((room, i) => (
+          ? orderedRooms.slice(0, 6).map((room) => (
               <div key={room.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="h-10 bg-gray-200 overflow-hidden">
                   {(room.mainImage || room.images?.[0]) && (
@@ -1815,15 +1815,14 @@ const ContentManager = () => {
 
   // ── Field change + auto-save draft (CM-06) ────────────────────────────────
   const handleChange = (tabId, key, val) => {
-    setValues(prev => {
-      const next = { ...prev, [tabId]: { ...prev[tabId], [key]: val } };
-      clearTimeout(draftTimers.current[tabId]);
-      draftTimers.current[tabId] = setTimeout(() => {
-        localStorage.setItem(`cms_draft_${tabId}`, JSON.stringify(next[tabId]));
-        setHasDraft(p => ({ ...p, [tabId]: true }));
-      }, 800);
-      return next;
-    });
+    setValues(prev => ({ ...prev, [tabId]: { ...prev[tabId], [key]: val } }));
+    // Compute updated tab snapshot outside the updater (no side effects in updater)
+    const updatedTab = { ...(values[tabId] || {}), [key]: val };
+    clearTimeout(draftTimers.current[tabId]);
+    draftTimers.current[tabId] = setTimeout(() => {
+      localStorage.setItem(`cms_draft_${tabId}`, JSON.stringify(updatedTab));
+      setHasDraft(p => ({ ...p, [tabId]: true }));
+    }, 800);
   };
 
   // ── Save section (CM-04) ──────────────────────────────────────────────────
@@ -1849,6 +1848,7 @@ const ContentManager = () => {
 
   // ── Revert to defaults (CM-05) ────────────────────────────────────────────
   const handleRevert = (tab) => {
+    if (!window.confirm(`Revert all "${tab.label}" content to defaults? This will discard your customizations for this section.`)) return;
     const defaults = {
       ...Object.fromEntries(tab.fields.map(f => [f.key, f.default])),
       ...(tab.hasSlides ? { home_slides: JSON.stringify(tab.slidesDefault) } : {}),
