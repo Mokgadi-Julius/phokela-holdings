@@ -73,22 +73,20 @@ const Services = () => {
       <ScrollToTop />
 
       {/* Hero Section */}
-      {cms !== null && (
-        <div className='relative h-[500px] bg-cover bg-center'
-             style={{ backgroundImage: `url(${images.Slider1})` }}>
-          <div className='absolute inset-0 bg-black/70'></div>
-          <div className='relative z-10 h-full flex items-center justify-center'>
-            <div className='text-center text-white'>
-              <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
-                {pageHeading}
-              </h1>
-              <p className='text-[20px] max-w-[800px] mx-auto'>
-                {pageSubtitle}
-              </p>
-            </div>
+      <div className='relative h-[500px] bg-cover bg-center'
+           style={{ backgroundImage: `url(${images.Slider1})` }}>
+        <div className='absolute inset-0 bg-black/70'></div>
+        <div className='relative z-10 h-full flex items-center justify-center'>
+          <div className='text-center text-white'>
+            <h1 className='font-primary text-[45px] lg:text-[65px] mb-4'>
+              {pageHeading}
+            </h1>
+            <p className='text-[20px] max-w-[800px] mx-auto'>
+              {pageSubtitle}
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='container mx-auto px-4 py-16'>
         {/* Introduction */}
