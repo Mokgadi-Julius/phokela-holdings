@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ScrollToTop } from '../components';
-import { settingsAPI } from '../services/api';
+import { settingsAPI, contactsAPI } from '../services/api';
 
 const parseJsonList = (json, fallback) => {
   try {
@@ -29,6 +29,9 @@ const Contact = () => {
   });
   const [cms, setCms]         = useState(null);
   const [general, setGeneral] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -62,18 +65,23 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
-    alert('Thank you for your inquiry! We will contact you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      service: '',
-      message: ''
-    });
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await contactsAPI.create(formData);
+      if (res.success) {
+        setSubmitSuccess(true);
+        setFormData({ name: '', email: '', phone: '', service: '', message: '' });
+      } else {
+        setSubmitError(res.message || 'Failed to send message. Please try again.');
+      }
+    } catch {
+      setSubmitError('Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -164,6 +172,16 @@ const Contact = () => {
           <div>
             <h2 className='font-primary text-[22px] sm:text-[26px] lg:text-[30px] mb-6'>Send us a Message</h2>
 
+            {submitSuccess && (
+              <div className='mb-6 bg-green-50 border border-green-200 rounded-lg p-4'>
+                <p className='text-green-700 font-medium'>Thank you for your inquiry! We will contact you soon.</p>
+              </div>
+            )}
+            {submitError && (
+              <div className='mb-6 bg-red-50 border border-red-200 rounded-lg p-4'>
+                <p className='text-red-700'>{submitError}</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className='space-y-6'>
               <div>
                 <label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-2'>
@@ -248,9 +266,10 @@ const Contact = () => {
 
               <button
                 type='submit'
-                className='w-full bg-accent text-white font-semibold py-3 px-6 rounded-lg hover:bg-accent/90 transition duration-300'
+                disabled={submitting}
+                className='w-full bg-accent text-white font-semibold py-3 px-6 rounded-lg hover:bg-accent/90 transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed'
               >
-                Send Message
+                {submitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </div>
