@@ -11,7 +11,7 @@ const Accommodation = () => {
       .catch(() => setCms({}));
   }, []);
 
-  const title       = cms?.page_heading     || 'Our Rooms & Accommodation';
+  const title       = cms?.page_heading     || 'Premium Guest Accommodations';
   const subtitle    = cms?.page_subtitle    || 'Comfortable, well-appointed rooms designed for a restful stay.';
   const description = cms?.page_description || '';
   const roomOrder   = cms?.room_order       || null;
