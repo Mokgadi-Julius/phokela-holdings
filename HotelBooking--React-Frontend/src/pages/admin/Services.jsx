@@ -27,9 +27,7 @@ const Services = () => {
       gallery: [],
     },
   });
-  const [imageFiles, setImageFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
   const categories = [
@@ -109,10 +107,12 @@ const Services = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+      // Clear facilities when category changes — they are category-specific
+      ...(name === 'category' ? { facilities: [] } : {}),
+    }));
   };
 
   const handleFacilityToggle = (facility) => {
@@ -132,28 +132,26 @@ const Services = () => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    setImageFiles(files);
 
-    // Create preview URLs
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setImagePreview(previews);
+    // Revoke previous blob URLs to avoid memory leaks
+    setImagePreview(prev => {
+      prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); });
+      return files.map(file => URL.createObjectURL(file));
+    });
 
-    // Auto-upload images immediately
     if (files.length > 0) {
       setUploadingImages(true);
       try {
         const uploadedUrls = await uploadImages(files);
-        setUploadedImageUrls(uploadedUrls);
-
-        // Set images in the proper structure
-        setFormData({
-          ...formData,
+        // Use functional form to avoid stale closure overwriting concurrent edits
+        setFormData(prev => ({
+          ...prev,
           images: {
             thumbnail: uploadedUrls[0] || '',
             large: uploadedUrls[0] || '',
             gallery: uploadedUrls,
-          }
-        });
+          },
+        }));
       } catch (err) {
         console.error('Image upload error:', err);
         setError('Failed to upload images: ' + err.message);
@@ -165,13 +163,13 @@ const Services = () => {
   };
 
   const uploadImages = async (files) => {
-    const formData = new FormData();
+    const uploadData = new FormData();
     files.forEach((file) => {
-      formData.append('images', file);
+      uploadData.append('images', file);
     });
 
     try {
-      const response = await servicesAPI.uploadImages(formData);
+      const response = await servicesAPI.uploadImages(uploadData);
       return response.data.imageUrls;
     } catch (err) {
       console.error('Image upload error:', err);
@@ -238,9 +236,7 @@ const Services = () => {
 
     // Convert backend image URLs to full URLs for preview
     const gallery = service.images?.gallery || [];
-    const imageUrls = getImageUrls(gallery);
-    setImagePreview(imageUrls);
-    setUploadedImageUrls(gallery);
+    setImagePreview(getImageUrls(gallery));
     setShowModal(true);
   };
 
@@ -285,22 +281,20 @@ const Services = () => {
       size: '',
       facilities: [],
       featured: false,
-      images: {
-        thumbnail: '',
-        large: '',
-        gallery: [],
-      },
+      images: { thumbnail: '', large: '', gallery: [] },
     });
-    setImageFiles([]);
-    setImagePreview([]);
-    setUploadedImageUrls([]);
+    // Revoke blob URLs to free browser memory
+    setImagePreview(prev => {
+      prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); });
+      return [];
+    });
   };
 
   const filteredServices = filterCategory === 'all'
     ? services
     : services.filter(s => s.category === filterCategory);
 
-  if (loading) {
+  if (loading && services.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
