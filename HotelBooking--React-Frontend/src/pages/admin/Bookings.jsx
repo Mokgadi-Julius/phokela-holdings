@@ -319,7 +319,7 @@ const Bookings = () => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <p className="text-yellow-800">{error}</p>
           <button
-            onClick={fetchBookings}
+            onClick={() => fetchBookings()}
             className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
           >
             Retry
@@ -479,9 +479,10 @@ const Bookings = () => {
                             onClick={() => {
                               setSelectedBooking(booking);
                               setPaymentData({
-                                ...paymentData,
-                                paymentStatus: booking.paymentStatus,
-                                amount: booking.pricing?.totalAmount || ''
+                                paymentStatus: booking.paymentStatus || '',
+                                paymentMethod: '',
+                                amount: booking.pricing?.totalAmount || '',
+                                reference: ''
                               });
                               setShowPaymentModal(true);
                             }}
@@ -645,7 +646,8 @@ const Bookings = () => {
                   <option value="cash">Cash</option>
                   <option value="card">Credit/Debit Card</option>
                   <option value="eft">EFT/Bank Transfer</option>
-                  <option value="mobile">Mobile Payment</option>
+                  <option value="payfast">PayFast</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
               <div>
@@ -821,11 +823,11 @@ const Bookings = () => {
               </div>
 
               {/* Special Requests */}
-              {selectedBooking.specialRequests?.notes && (
+              {selectedBooking.specialRequests?.other && (
                 <div>
                   <h4 className="font-semibold text-lg mb-3">Special Requests</h4>
                   <div className="p-4 border border-gray-200 rounded-lg">
-                    <p className="text-gray-700">{selectedBooking.specialRequests.notes}</p>
+                    <p className="text-gray-700">{selectedBooking.specialRequests.other}</p>
                   </div>
                 </div>
               )}

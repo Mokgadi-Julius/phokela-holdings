@@ -60,8 +60,9 @@ const connectDB = async () => {
       console.log(`🔗 Host: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}`);
     }
 
-    // Sync all models
-    await sequelize.sync({ alter: true });
+    // Sync all models — alter:true in dev only to avoid duplicate index accumulation in production
+    const isDev = process.env.NODE_ENV !== 'production';
+    await sequelize.sync({ alter: isDev });
     console.log('✅ Database models synchronized');
 
     return sequelize;
