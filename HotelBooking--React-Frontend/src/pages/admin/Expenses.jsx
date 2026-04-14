@@ -343,7 +343,10 @@ const Expenses = () => {
       {activeTab === 'expenses' && (
         <>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => fetchExpenses()} className="ml-4 text-sm font-medium underline hover:no-underline">Retry</button>
+            </div>
           )}
 
           {/* Overview Cards */}
@@ -486,7 +489,7 @@ const Expenses = () => {
                   {loading ? (
                     <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">Loading expenses...</td></tr>
                   ) : expenses.length === 0 ? (
-                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No expenses matched criteria.</td></tr>
+                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">{error ? 'Failed to load expenses.' : 'No expenses matched criteria.'}</td></tr>
                   ) : (
                     expenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-gray-50">
@@ -573,7 +576,10 @@ const Expenses = () => {
       {activeTab === 'templates' && (
         <>
           {templatesError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{templatesError}</div>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center justify-between">
+              <span>{templatesError}</span>
+              <button onClick={() => fetchTemplates()} className="ml-4 text-sm font-medium underline hover:no-underline">Retry</button>
+            </div>
           )}
 
           {/* Templates Stats */}
@@ -585,7 +591,7 @@ const Expenses = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Active Templates</p>
-                  <p className="text-2xl font-bold text-gray-900">{templates.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{templates.filter(t => !t.isPaused).length}</p>
                 </div>
               </div>
             </div>
