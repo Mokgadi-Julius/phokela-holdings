@@ -8,7 +8,8 @@ import {
 const Reports = () => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('7days');
+  const [error, setError] = useState(null);
+  const [timeRange] = useState('7days');
   const [autoRefresh, setAutoRefresh] = useState(true);
   
   // Expenditure state
@@ -28,12 +29,15 @@ const Reports = () => {
   const fetchReportData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [dashboardRes, roomsRes, servicesRes, expRes] = await Promise.all([
         adminAPI.getDashboard(),
         roomsAPI.getAll(),
         servicesAPI.getAll(),
         expendituresAPI.getAll()
       ]);
+
+      if (!dashboardRes.success) throw new Error('Failed to load dashboard data');
 
       const stats = dashboardRes.data.stats;
       const monthlyData = dashboardRes.data.monthlyOverview || [];
@@ -99,11 +103,15 @@ const Reports = () => {
         value: count
       }));
 
-      // Booking status distribution
+      // Booking status distribution — use accurate per-status counts from backend
+      const bookingStatusCounts = dashboardRes.data.bookingStatusCounts || {};
       const statusData = [
-        { name: 'Pending', value: stats.pendingBookings || 0 },
-        { name: 'Confirmed', value: (stats.totalBookings || 0) - (stats.pendingBookings || 0) },
-      ];
+        { name: 'Pending',   value: bookingStatusCounts.pending   || 0 },
+        { name: 'Confirmed', value: bookingStatusCounts.confirmed || 0 },
+        { name: 'Completed', value: bookingStatusCounts.completed || 0 },
+        { name: 'Cancelled', value: bookingStatusCounts.cancelled || 0 },
+        { name: 'No-Show',   value: bookingStatusCounts['no-show'] || 0 },
+      ].filter(s => s.value > 0);
 
       // Daily bookings trend (last 7 days)
       const dailyBookings = dashboardRes.data.dailyBookings || [];
@@ -118,8 +126,9 @@ const Reports = () => {
         recentBookings,
         expenditureCategoryData
       });
-    } catch (error) {
-      console.error('Failed to fetch report data:', error);
+    } catch (err) {
+      console.error('Failed to fetch report data:', err);
+      setError('Failed to load report data. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -138,13 +147,27 @@ const Reports = () => {
     }
   }, [autoRefresh]);
 
-  if (loading) {
+  if (loading && !reportData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <p className="mt-4 text-gray-600">Loading reports...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error && !reportData) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 m-6">
+        <p className="text-red-800 font-medium">{error}</p>
+        <button
+          onClick={fetchReportData}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -193,6 +216,14 @@ const Reports = () => {
           </button>
         </div>
       </div>
+
+      {/* Error banner (shown when refresh fails but old data is still visible) */}
+      {error && reportData && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-800 text-sm">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-600 hover:text-red-700 text-sm ml-4">Dismiss</button>
+        </div>
+      )}
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -323,7 +354,7 @@ const Reports = () => {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {reportData.categoryData.map((entry, index) => (
+                {reportData.categoryData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -348,7 +379,7 @@ const Reports = () => {
                 dataKey="value"
                 label={({ name, value }) => `${name}: ${value}`}
               >
-                {reportData.statusData.map((entry, index) => (
+                {reportData.statusData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={
                     entry.name === 'Pending'   ? '#F59E0B' :
                     entry.name === 'Confirmed' ? '#10B981' :
@@ -381,7 +412,7 @@ const Reports = () => {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {reportData.expenditureCategoryData.map((entry, index) => (
+                {reportData.expenditureCategoryData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -443,7 +474,7 @@ const Reports = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {booking.primaryGuest?.firstName} {booking.primaryGuest?.lastName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{booking.service?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{booking.serviceSnapshot?.name || booking.service?.name || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     R{booking.pricing?.totalAmount?.toLocaleString() || 0}
                   </td>
