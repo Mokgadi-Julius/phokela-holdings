@@ -104,8 +104,8 @@ const PaymentCancelled = () => {
             </p>
             <p className="text-gray-700">
               <span className="font-medium">Phone:</span>{' '}
-              <a href="tel:+27123456789" className="text-blue-600 hover:underline">
-                +27 12 345 6789
+              <a href="tel:+27835940966" className="text-blue-600 hover:underline">
+                083 594 0966
               </a>
             </p>
           </div>

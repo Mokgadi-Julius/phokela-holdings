@@ -381,10 +381,10 @@ const Reports = () => {
               >
                 {reportData.statusData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={
-                    entry.name === 'Pending'   ? '#F59E0B' :
-                    entry.name === 'Confirmed' ? '#10B981' :
-                    entry.name === 'Completed' ? '#3B82F6' :
-                    entry.name === 'Cancelled' ? '#EF4444' :
+                    _entry.name === 'Pending'   ? '#F59E0B' :
+                    _entry.name === 'Confirmed' ? '#10B981' :
+                    _entry.name === 'Completed' ? '#3B82F6' :
+                    _entry.name === 'Cancelled' ? '#EF4444' :
                     '#6B7280'
                   } />
                 ))}
