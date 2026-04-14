@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { roomsAPI } from '../../services/api';
-import { getImageUrl, getImageUrls, getMainImageUrl } from '../../utils/imageHelpers';
+import { getImageUrls, getMainImageUrl } from '../../utils/imageHelpers';
 
 const Rooms = () => {
   const [rooms, setRooms] = useState([]);
@@ -20,7 +20,6 @@ const Rooms = () => {
     mainImage: '',
     images: [],
   });
-  const [imageFiles, setImageFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -92,24 +91,24 @@ const Rooms = () => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    setImageFiles(files);
 
-    // Create preview URLs
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setImagePreview(previews);
+    // Revoke previous blob URLs to avoid memory leaks
+    setImagePreview(prev => {
+      prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); });
+      return files.map(file => URL.createObjectURL(file));
+    });
 
-    // Auto-upload images immediately to get URLs for main image selection
     if (files.length > 0) {
       setUploadingImages(true);
       try {
         const uploadedUrls = await uploadImages(files);
         setUploadedImageUrls(uploadedUrls);
-        // Set first image as main by default
-        if (!formData.mainImage && uploadedUrls.length > 0) {
-          setFormData({ ...formData, mainImage: uploadedUrls[0], images: uploadedUrls });
-        } else {
-          setFormData({ ...formData, images: uploadedUrls });
-        }
+        // Use functional form to avoid stale closure overwriting concurrent edits
+        setFormData(prev => ({
+          ...prev,
+          images: uploadedUrls,
+          mainImage: prev.mainImage || uploadedUrls[0] || '',
+        }));
       } catch (err) {
         console.error('Image upload error:', err);
         setError('Failed to upload images: ' + err.message);
@@ -162,13 +161,13 @@ const Rooms = () => {
   };
 
   const uploadImages = async (files) => {
-    const formData = new FormData();
+    const uploadData = new FormData();
     files.forEach((file) => {
-      formData.append('images', file);
+      uploadData.append('images', file);
     });
 
     try {
-      const response = await roomsAPI.uploadImages(formData);
+      const response = await roomsAPI.uploadImages(uploadData);
       return response.data.imageUrls;
     } catch (err) {
       console.error('Image upload error:', err);
@@ -241,12 +240,15 @@ const Rooms = () => {
       mainImage: '',
       images: [],
     });
-    setImageFiles([]);
-    setImagePreview([]);
+    // Revoke blob URLs created during this session to free browser memory
+    setImagePreview(prev => {
+      prev.forEach(url => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); });
+      return [];
+    });
     setUploadedImageUrls([]);
   };
 
-  if (loading) {
+  if (loading && rooms.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
