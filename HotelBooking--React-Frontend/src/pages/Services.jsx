@@ -198,7 +198,7 @@ const Services = () => {
               Contact Us
             </Link>
             <Link
-              to='/book'
+              to='/accommodation'
               className='border border-accent text-accent px-8 py-3 rounded-lg hover:bg-accent hover:text-white transition duration-300 text-center font-semibold'
             >
               Book Now
