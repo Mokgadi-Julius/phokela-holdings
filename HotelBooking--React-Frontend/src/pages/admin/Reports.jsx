@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { adminAPI, roomsAPI, servicesAPI, expendituresAPI } from '../../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { adminAPI, roomsAPI, servicesAPI, expendituresAPI, bookingsAPI } from '../../services/api';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -11,7 +11,20 @@ const Reports = () => {
   const [error, setError] = useState(null);
   const [timeRange] = useState('7days');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+
+  // Room Occupancy filter state
+  const [occupancyView, setOccupancyView] = useState('current'); // 'current' | 'hour' | 'day' | 'week' | 'month' | 'year'
+  const [occupancyDate, setOccupancyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [occupancyHour, setOccupancyHour] = useState(new Date().getHours());
+  const [occupancyWeek, setOccupancyWeek] = useState('');
+  const [occupancyMonth, setOccupancyMonth] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  );
+  const [occupancyYear, setOccupancyYear] = useState(new Date().getFullYear());
+  const [filteredOccupancy, setFilteredOccupancy] = useState(null);
+  const [occupancyLoading, setOccupancyLoading] = useState(false);
+  const cachedBookingsRef = useRef(null); // cached bookings for filter computation
+
   // Expenditure state
   const [expenditures, setExpenditures] = useState([]);
   const [showExpModal, setShowExpModal] = useState(false);
@@ -25,6 +38,143 @@ const Reports = () => {
   });
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  // ── Occupancy filter helpers ──────────────────────────────────────────────
+
+  /** Compute [startDate, endDate] from the current filter selections */
+  const getOccupancyDateRange = () => {
+    if (occupancyView === 'hour' || occupancyView === 'day') {
+      const start = new Date(occupancyDate);
+      const end = new Date(occupancyDate);
+      end.setHours(23, 59, 59, 999);
+      return [start, end];
+    }
+    if (occupancyView === 'week') {
+      if (!occupancyWeek) return null;
+      const [yearStr, weekPart] = occupancyWeek.split('-W');
+      const year = parseInt(yearStr, 10);
+      const week = parseInt(weekPart, 10);
+      // ISO week: week 1 contains Jan 4
+      const jan4 = new Date(year, 0, 4);
+      const mondayOfWeek1 = new Date(jan4);
+      mondayOfWeek1.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+      const start = new Date(mondayOfWeek1);
+      start.setDate(mondayOfWeek1.getDate() + (week - 1) * 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return [start, end];
+    }
+    if (occupancyView === 'month') {
+      const [yearStr, monthStr] = occupancyMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10) - 1;
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+      return [start, end];
+    }
+    if (occupancyView === 'year') {
+      const start = new Date(occupancyYear, 0, 1);
+      const end = new Date(occupancyYear, 11, 31, 23, 59, 59, 999);
+      return [start, end];
+    }
+    return null;
+  };
+
+  /** Build a human-readable label for the active filter */
+  const getOccupancyLabel = () => {
+    if (occupancyView === 'current') return 'Current occupancy';
+    if (occupancyView === 'hour') {
+      const h = String(occupancyHour).padStart(2, '0');
+      return `${occupancyDate} at ${h}:00`;
+    }
+    if (occupancyView === 'day') return occupancyDate;
+    if (occupancyView === 'week') {
+      if (!occupancyWeek) return '';
+      const range = getOccupancyDateRange();
+      if (!range) return occupancyWeek;
+      const fmt = d => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+      return `${fmt(range[0])} – ${fmt(range[1])}, ${range[0].getFullYear()}`;
+    }
+    if (occupancyView === 'month') {
+      const [y, m] = occupancyMonth.split('-');
+      return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    }
+    if (occupancyView === 'year') return String(occupancyYear);
+    return '';
+  };
+
+  /** Filter cached bookings to compute room occupancy for a date range */
+  const computeFilteredOccupancy = (bookings, rawRooms, startDate, endDate) => {
+    const roomCounts = {};
+    bookings.forEach(booking => {
+      if (['cancelled', 'no-show'].includes(booking.status)) return;
+      if (!booking.roomId) return;
+      const details = booking.bookingDetails || {};
+      const checkIn  = details.checkIn  ? new Date(details.checkIn)  : null;
+      const checkOut = details.checkOut ? new Date(details.checkOut) : null;
+      if (!checkIn || !checkOut) return;
+      // Booking overlaps with period when checkIn ≤ endDate AND checkOut ≥ startDate
+      if (checkIn <= endDate && checkOut >= startDate) {
+        roomCounts[booking.roomId] = (roomCounts[booking.roomId] || 0) + (booking.roomQuantity || 1);
+      }
+    });
+    return rawRooms.map(room => {
+      const booked = Math.min(roomCounts[room.id] || 0, room.totalQuantity || 0);
+      return {
+        name: room.name,
+        total: room.totalQuantity || 0,
+        booked,
+        available: Math.max(0, (room.totalQuantity || 0) - booked),
+      };
+    });
+  };
+
+  /** Fetch bookings (cached) and apply the current occupancy filter */
+  const applyOccupancyFilter = async () => {
+    if (occupancyView === 'current') {
+      setFilteredOccupancy(null);
+      return;
+    }
+    const range = getOccupancyDateRange();
+    if (!range) return;
+    const [startDate, endDate] = range;
+
+    setOccupancyLoading(true);
+    try {
+      // Fetch once and cache
+      if (!cachedBookingsRef.current) {
+        const res = await bookingsAPI.getAll();
+        cachedBookingsRef.current = res.data || [];
+      }
+      const computed = computeFilteredOccupancy(
+        cachedBookingsRef.current,
+        reportData?.rawRooms || [],
+        startDate,
+        endDate
+      );
+      setFilteredOccupancy(computed);
+    } catch (err) {
+      console.error('Occupancy filter error:', err);
+    } finally {
+      setOccupancyLoading(false);
+    }
+  };
+
+  // Re-apply filter whenever the date selectors change (only if a non-current view is active)
+  useEffect(() => {
+    if (occupancyView !== 'current' && reportData) applyOccupancyFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [occupancyDate, occupancyHour, occupancyWeek, occupancyMonth, occupancyYear]);
+
+  // Clear filtered occupancy when switching back to 'current'
+  useEffect(() => {
+    if (occupancyView === 'current') setFilteredOccupancy(null);
+    else if (reportData) applyOccupancyFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [occupancyView]);
+
+  // ── End occupancy filter helpers ──────────────────────────────────────────
 
   const fetchReportData = async () => {
     try {
@@ -120,6 +270,7 @@ const Reports = () => {
         stats,
         revenueData,
         roomOccupancy,
+        rawRooms: roomsRes.data,
         categoryData,
         statusData,
         dailyBookings,
@@ -325,9 +476,109 @@ const Reports = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Room Occupancy */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Room Occupancy</h2>
+          {/* Header + view toggle */}
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Room Occupancy</h2>
+              {occupancyView !== 'current' && (
+                <p className="text-sm text-blue-600 mt-0.5">{getOccupancyLabel()}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {['current', 'hour', 'day', 'week', 'month', 'year'].map(v => (
+                <button
+                  key={v}
+                  onClick={() => setOccupancyView(v)}
+                  className={`px-3 py-1 text-xs rounded-full font-medium transition ${
+                    occupancyView === v
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date / time selectors */}
+          {occupancyView !== 'current' && (
+            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+              {(occupancyView === 'day' || occupancyView === 'hour') && (
+                <>
+                  <label className="text-gray-600 font-medium">Date</label>
+                  <input
+                    type="date"
+                    value={occupancyDate}
+                    onChange={e => setOccupancyDate(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+                </>
+              )}
+              {occupancyView === 'hour' && (
+                <>
+                  <label className="text-gray-600 font-medium">Hour</label>
+                  <select
+                    value={occupancyHour}
+                    onChange={e => setOccupancyHour(Number(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {occupancyView === 'week' && (
+                <>
+                  <label className="text-gray-600 font-medium">Week</label>
+                  <input
+                    type="week"
+                    value={occupancyWeek}
+                    onChange={e => setOccupancyWeek(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+                </>
+              )}
+              {occupancyView === 'month' && (
+                <>
+                  <label className="text-gray-600 font-medium">Month</label>
+                  <input
+                    type="month"
+                    value={occupancyMonth}
+                    onChange={e => setOccupancyMonth(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+                </>
+              )}
+              {occupancyView === 'year' && (
+                <>
+                  <label className="text-gray-600 font-medium">Year</label>
+                  <select
+                    value={occupancyYear}
+                    onChange={e => setOccupancyYear(Number(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  >
+                    {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {occupancyLoading && (
+                <span className="flex items-center gap-1.5 text-blue-600">
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Loading…
+                </span>
+              )}
+            </div>
+          )}
+
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={reportData.roomOccupancy} layout="vertical">
+            <BarChart data={filteredOccupancy || reportData.roomOccupancy} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={100} />
