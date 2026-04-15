@@ -3,15 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import { ScrollToTop } from '../components';
 import { servicesAPI } from '../services/api';
 import { getImageUrl } from '../utils/imageHelpers';
-import BookingModal from '../components/BookingModal';
 import { FaCheck, FaArrowLeft } from 'react-icons/fa';
+
+const WHATSAPP_URL = 'https://wa.me/27835940966?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20your%20catering%20services';
+const EMAIL_URL = 'mailto:admin@phokelaholdings.co.za?subject=Catering%20Enquiry';
 
 const CateringDetails = () => {
   const { id } = useParams();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   useEffect(() => {
     servicesAPI.getById(id)
@@ -146,7 +147,7 @@ const CateringDetails = () => {
             )}
           </div>
 
-          {/* Right — Booking Panel */}
+          {/* Right — Enquiry Panel */}
           <div className='w-full lg:w-[40%] mt-10 lg:mt-0'>
             <div className='bg-accent/10 rounded-lg p-6 sticky top-[140px]'>
               <h3 className='font-primary text-[26px] mb-2'>{service.name}</h3>
@@ -158,7 +159,7 @@ const CateringDetails = () => {
               )}
 
               <div className='text-3xl font-bold text-accent mb-1'>R{service.price}</div>
-              <div className='text-sm text-gray-600 mb-6'>{service.priceUnit}</div>
+              <div className='text-sm text-gray-500 mb-6'>from · starting price</div>
 
               {service.maxPerson && (
                 <div className='flex items-center gap-2 text-gray-600 mb-6 text-sm'>
@@ -169,34 +170,30 @@ const CateringDetails = () => {
                 </div>
               )}
 
-              <button
-                onClick={() => setIsBookingModalOpen(true)}
-                className='w-full bg-accent text-white py-3 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'
-              >
-                Book Now
-              </button>
+              <div className='bg-white rounded-lg p-4 mb-5 text-sm text-gray-600 border border-gray-200'>
+                <p className='font-semibold text-gray-800 mb-1'>How to book</p>
+                <p>Contact us via WhatsApp or email to discuss your menu and requirements. A signed contract is required before any deposit is taken.</p>
+              </div>
 
+              <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+                 className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold text-lg mb-3'>
+                Enquire on WhatsApp
+              </a>
+              <a href={EMAIL_URL}
+                 className='block w-full text-center bg-accent text-white py-3 rounded-lg hover:bg-accent/90 transition font-semibold mb-3'>
+                Enquire by Email
+              </a>
               <Link
                 to='/contact'
-                className='block w-full text-center border border-accent text-accent py-3 rounded-lg hover:bg-accent hover:text-white transition font-semibold mt-3'
+                className='block w-full text-center border border-accent text-accent py-3 rounded-lg hover:bg-accent hover:text-white transition font-semibold'
               >
-                Enquire
+                Contact Us
               </Link>
             </div>
           </div>
 
         </div>
       </div>
-
-      {/* Booking Modal */}
-      {isBookingModalOpen && (
-        <BookingModal
-          service={service}
-          isOpen={isBookingModalOpen}
-          onClose={() => setIsBookingModalOpen(false)}
-          bookingDetails={null}
-        />
-      )}
     </section>
   );
 };
