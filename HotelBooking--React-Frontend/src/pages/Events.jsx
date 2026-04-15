@@ -93,14 +93,84 @@ const Events = () => {
           </div>
         </div>
 
-        {/* Inquiry Policy Notice */}
-        <div className='mb-10 bg-amber-50 border border-amber-200 rounded-lg p-6 text-center'>
-          <p className='text-amber-800 font-semibold text-lg mb-1'>Inquiry-First Booking</p>
-          <p className='text-amber-700 text-sm max-w-[600px] mx-auto'>
-            Events are booked through a personalised process — not an online checkout. Contact us via
-            WhatsApp or email, and we will prepare a custom contract before any deposit is taken.
-            Prices shown are starting (venue only) rates; the final amount depends on your package and extras.
+        {/* Venue Pricing & Booking Policy */}
+        <div className='mb-16'>
+          <h2 className='font-primary text-[35px] text-center mb-4'>Venue Options & Pricing</h2>
+          <p className='text-center text-gray-600 mb-10 max-w-[700px] mx-auto'>
+            All event bookings are handled through a personalised inquiry process — not an online
+            checkout. Contact us via WhatsApp or email to discuss your requirements, and we will
+            prepare a custom contract before any deposit is taken.
           </p>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-8 mb-10'>
+            {/* Meeting Room */}
+            <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
+              <div className='text-4xl mb-3'>🪑</div>
+              <h3 className='font-primary text-[26px] mb-1'>Meeting Room</h3>
+              <p className='text-gray-500 text-sm mb-4'>Capacity: 2 – 30 people</p>
+              <div className='text-3xl font-bold text-accent mb-1'>R3,500</div>
+              <p className='text-sm text-gray-500 mb-6'>Venue only (baseline price)</p>
+              <p className='text-gray-600 text-sm mb-6'>
+                Ideal for smaller intimate events, private functions, and gatherings. The final
+                amount is confirmed in your contract based on extras selected (catering, equipment, décor, etc.).
+              </p>
+              <div className='flex flex-col gap-3'>
+                <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+                   className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
+                  Enquire on WhatsApp
+                </a>
+                <a href={EMAIL_URL}
+                   className='block w-full text-center border border-accent text-accent py-3 rounded-lg hover:bg-accent hover:text-white transition font-semibold'>
+                  Enquire by Email
+                </a>
+              </div>
+            </div>
+
+            {/* Conference / Outdoor */}
+            <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
+              <div className='text-4xl mb-3'>🎉</div>
+              <h3 className='font-primary text-[26px] mb-1'>Event Venue</h3>
+              <p className='text-gray-500 text-sm mb-4'>Capacity: 30 – 50 people · Indoor or Outdoor</p>
+              <div className='text-3xl font-bold text-accent mb-1'>R5,500</div>
+              <p className='text-sm text-gray-500 mb-6'>Venue only (baseline price)</p>
+              <p className='text-gray-600 text-sm mb-6'>
+                Perfect for celebrations, weddings, corporate functions, and large gatherings —
+                indoors or outdoors. The final contract amount varies based on your chosen package and extras.
+              </p>
+              <div className='flex flex-col gap-3'>
+                <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+                   className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
+                  Enquire on WhatsApp
+                </a>
+                <a href={EMAIL_URL}
+                   className='block w-full text-center border border-accent text-accent py-3 rounded-lg hover:bg-accent hover:text-white transition font-semibold'>
+                  Enquire by Email
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className='bg-gray-50 rounded-lg p-8'>
+            <h3 className='font-primary text-[22px] mb-6 text-center'>How the Booking Process Works</h3>
+            <div className='grid grid-cols-1 sm:grid-cols-4 gap-6 text-center'>
+              {[
+                { step: '1', label: 'Contact Us',    desc: 'Reach out via WhatsApp or email with your date, headcount, and event requirements' },
+                { step: '2', label: 'Get a Quote',   desc: 'We prepare a custom quote based on your chosen package and extras' },
+                { step: '3', label: 'Sign Contract', desc: 'A contract covering all terms must be signed by both parties before anything is confirmed' },
+                { step: '4', label: 'Pay Deposit',   desc: 'Only after the signed contract is the deposit amount confirmed and payment arranged' },
+              ].map(item => (
+                <div key={item.step}>
+                  <div className='bg-accent text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-lg'>{item.step}</div>
+                  <h4 className='font-semibold mb-1'>{item.label}</h4>
+                  <p className='text-gray-600 text-sm'>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+            <p className='text-center text-sm text-gray-500 mt-6'>
+              Available packages: venue only · venue + catering · full service (venue + equipment + catering) · event without food · event without food and décor
+            </p>
+          </div>
         </div>
 
         {/* Event Services */}
