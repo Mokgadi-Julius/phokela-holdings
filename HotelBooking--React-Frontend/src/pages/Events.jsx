@@ -4,13 +4,13 @@ import { servicesAPI, settingsAPI } from '../services/api';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
-import BookingModal from '../components/BookingModal';
+
+const WHATSAPP_URL = 'https://wa.me/27835940966?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20your%20event%20venue%20hire';
+const EMAIL_URL = 'mailto:admin@phokelaholdings.co.za?subject=Event%20Venue%20Enquiry';
 
 const Events = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
   const [cms, setCms] = useState(null);
 
   useEffect(() => {
@@ -93,6 +93,16 @@ const Events = () => {
           </div>
         </div>
 
+        {/* Inquiry Policy Notice */}
+        <div className='mb-10 bg-amber-50 border border-amber-200 rounded-lg p-6 text-center'>
+          <p className='text-amber-800 font-semibold text-lg mb-1'>Inquiry-First Booking</p>
+          <p className='text-amber-700 text-sm max-w-[600px] mx-auto'>
+            Events are booked through a personalised process — not an online checkout. Contact us via
+            WhatsApp or email, and we will prepare a custom contract before any deposit is taken.
+            Prices shown are starting (venue only) rates; the final amount depends on your package and extras.
+          </p>
+        </div>
+
         {/* Event Services */}
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>{packagesHeading}</h2>
@@ -144,7 +154,7 @@ const Events = () => {
                         </div>
                         <div className='text-right'>
                           <div className='text-2xl font-bold text-accent'>R{service.price}</div>
-                          <div className='text-sm text-gray-600'>{String(service.priceUnit || 'per event')}</div>
+                          <div className='text-sm text-gray-500'>venue only · from</div>
                         </div>
                       </div>
 
@@ -186,15 +196,16 @@ const Events = () => {
                         </div>
                       )}
 
-                      <button
-                        onClick={() => {
-                          setSelectedService(service);
-                          setIsBookingModalOpen(true);
-                        }}
-                        className='block w-full text-center bg-accent text-white py-3 rounded-lg hover:bg-accent/90 transition font-semibold'
-                      >
-                        Book Now
-                      </button>
+                      <div className='flex flex-col gap-2'>
+                        <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+                           className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
+                          Enquire on WhatsApp
+                        </a>
+                        <Link to={`/events/${service.id}`}
+                           className='block w-full text-center border border-accent text-accent py-2 rounded-lg hover:bg-accent hover:text-white transition font-semibold text-sm'>
+                          View Details
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
@@ -209,27 +220,18 @@ const Events = () => {
           <p className='text-gray-600 text-lg mb-6 max-w-[600px] mx-auto'>
             {ctaDescription}
           </p>
-          <Link
-            to={ctaBtnLink}
-            className='inline-block bg-accent text-white px-8 py-4 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'
-          >
-            {ctaBtnText}
-          </Link>
+          <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+            <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+               className='inline-block bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 transition font-semibold text-lg'>
+              WhatsApp Us
+            </a>
+            <a href={EMAIL_URL}
+               className='inline-block bg-accent text-white px-8 py-4 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'>
+              {ctaBtnText}
+            </a>
+          </div>
         </div>
       </div>
-
-      {/* Booking Modal */}
-      {selectedService && (
-        <BookingModal
-          service={selectedService}
-          isOpen={isBookingModalOpen}
-          onClose={() => {
-            setIsBookingModalOpen(false);
-            setSelectedService(null);
-          }}
-          bookingDetails={null}
-        />
-      )}
     </div>
   );
 };

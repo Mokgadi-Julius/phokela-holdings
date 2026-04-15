@@ -141,6 +141,52 @@ const Services = () => {
           </div>
         </div>
 
+        {/* Venue Hire Policy */}
+        <div className='mb-16'>
+          <h2 className='font-primary text-[35px] text-center mb-4'>Conference & Event Venue Hire</h2>
+          <p className='text-center text-gray-600 mb-10 max-w-[700px] mx-auto'>
+            Conference, meeting room, and event bookings are handled through a personalised inquiry process —
+            not an online checkout. Contact us to discuss your needs, and we will prepare a custom contract
+            before any deposit is taken.
+          </p>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-8 mb-8'>
+            {/* Meeting Room card */}
+            <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
+              <div className='text-4xl mb-3'>🪑</div>
+              <h3 className='font-primary text-[24px] mb-1'>Meeting Room</h3>
+              <p className='text-gray-500 text-sm mb-3'>Capacity: 2 – 30 people</p>
+              <div className='text-3xl font-bold text-accent mb-1'>R3,500</div>
+              <p className='text-sm text-gray-500 mb-4'>Venue only (baseline price)</p>
+              <p className='text-gray-600 text-sm'>
+                Final amount confirmed in your contract based on chosen package and extras (catering, equipment, etc.).
+              </p>
+            </div>
+
+            {/* Conference card */}
+            <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
+              <div className='text-4xl mb-3'>🏢</div>
+              <h3 className='font-primary text-[24px] mb-1'>Conference</h3>
+              <p className='text-gray-500 text-sm mb-3'>Capacity: 30 – 50 people · Indoor or Outdoor</p>
+              <div className='text-3xl font-bold text-accent mb-1'>R5,500</div>
+              <p className='text-sm text-gray-500 mb-4'>Venue only (baseline price)</p>
+              <p className='text-gray-600 text-sm'>
+                Final amount confirmed in your contract based on chosen package and extras (catering, equipment, décor, etc.).
+              </p>
+            </div>
+          </div>
+
+          <div className='bg-amber-50 border border-amber-200 rounded-lg p-6'>
+            <p className='font-semibold text-amber-800 mb-2'>How the booking process works</p>
+            <ul className='text-amber-700 text-sm space-y-1'>
+              <li>1. Contact us via WhatsApp or email with your date, headcount, and requirements</li>
+              <li>2. We prepare a custom quote based on your chosen package (venue only, venue + catering, full service, etc.)</li>
+              <li>3. A contract — customised per booking — must be signed by both parties before anything is confirmed</li>
+              <li>4. Deposit amount and payment terms are set out in the signed contract</li>
+            </ul>
+          </div>
+        </div>
+
         {/* Service Categories */}
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>Service Categories</h2>
@@ -201,7 +247,7 @@ const Services = () => {
               to='/accommodation'
               className='border border-accent text-accent px-8 py-3 rounded-lg hover:bg-accent hover:text-white transition duration-300 text-center font-semibold'
             >
-              Book Now
+              Book Accommodation
             </Link>
             <a
               href='tel:0835940966'
