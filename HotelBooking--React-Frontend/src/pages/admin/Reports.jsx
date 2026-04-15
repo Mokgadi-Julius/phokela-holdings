@@ -142,9 +142,9 @@ const Reports = () => {
 
     setOccupancyLoading(true);
     try {
-      // Fetch once and cache
+      // Fetch once and cache — pass a high limit to bypass the default 50-record page cap
       if (!cachedBookingsRef.current) {
-        const res = await bookingsAPI.getAll();
+        const res = await bookingsAPI.getAll({ limit: 9999 });
         cachedBookingsRef.current = res.data || [];
       }
       const computed = computeFilteredOccupancy(
