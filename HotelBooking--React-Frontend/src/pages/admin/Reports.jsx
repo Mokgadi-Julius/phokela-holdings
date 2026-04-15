@@ -599,9 +599,20 @@ const Reports = () => {
                 data={reportData.categoryData}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
+                labelLine={true}
+                label={({ name, percent, x, y, cx: pcx }) => (
+                  <text
+                    x={x}
+                    y={y}
+                    fill="#374151"
+                    textAnchor={x > pcx ? 'start' : 'end'}
+                    dominantBaseline="central"
+                    fontSize={11}
+                  >
+                    {`${name.length > 9 ? name.slice(0, 8) + '…' : name} ${(percent * 100).toFixed(0)}%`}
+                  </text>
+                )}
+                outerRadius={75}
                 fill="#8884d8"
                 dataKey="value"
               >
