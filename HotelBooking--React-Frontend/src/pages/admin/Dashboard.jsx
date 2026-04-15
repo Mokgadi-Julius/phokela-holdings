@@ -153,7 +153,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-gray-600">Welcome back! Here\'s what\'s happening today.</p>
+          <p className="mt-1 text-gray-600">Welcome back! Here's what's happening today.</p>
         </div>
         <button
           onClick={fetchDashboardData}
