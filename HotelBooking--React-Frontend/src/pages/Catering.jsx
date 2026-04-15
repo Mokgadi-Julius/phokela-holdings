@@ -4,13 +4,13 @@ import { servicesAPI, settingsAPI } from '../services/api';
 import images from '../assets';
 import { useState, useEffect } from 'react';
 import { getImageUrl } from '../utils/imageHelpers';
-import BookingModal from '../components/BookingModal';
+
+const WHATSAPP_URL = 'https://wa.me/27835940966?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20your%20catering%20services';
+const EMAIL_URL = 'mailto:admin@phokelaholdings.co.za?subject=Catering%20Enquiry';
 
 const Catering = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
   const [cms, setCms] = useState(null);
 
   useEffect(() => {
@@ -91,6 +91,39 @@ const Catering = () => {
           </div>
         </div>
 
+        {/* Inquiry Policy Notice */}
+        <div className='mb-10 bg-amber-50 border border-amber-200 rounded-lg p-6 text-center'>
+          <p className='text-amber-800 font-semibold text-lg mb-1'>Inquiry-First Booking</p>
+          <p className='text-amber-700 text-sm max-w-[650px] mx-auto'>
+            Catering bookings are handled through a personalised process — not an online checkout.
+            Contact us via WhatsApp or email to discuss your requirements. Prices shown are starting
+            rates; the final amount depends on your menu, headcount, and chosen package. A signed
+            contract is required before any deposit is taken.
+          </p>
+        </div>
+
+        {/* How Catering Packages Work */}
+        <div className='mb-12 bg-gray-50 rounded-lg p-8'>
+          <h3 className='font-primary text-[24px] text-center mb-6'>How It Works</h3>
+          <div className='grid grid-cols-1 sm:grid-cols-4 gap-6 text-center mb-6'>
+            {[
+              { step: '1', label: 'Contact Us',   desc: 'WhatsApp or email us with your date, headcount, and catering needs' },
+              { step: '2', label: 'Get a Quote',  desc: 'We prepare a custom quote based on your chosen menu and package' },
+              { step: '3', label: 'Sign Contract', desc: 'A customised contract covering menu, payment terms, and cancellation must be signed by both parties' },
+              { step: '4', label: 'Pay Deposit',  desc: 'Deposit amount is confirmed in the contract — no payment before signing' },
+            ].map(item => (
+              <div key={item.step}>
+                <div className='bg-accent text-white w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-lg'>{item.step}</div>
+                <h4 className='font-semibold mb-1'>{item.label}</h4>
+                <p className='text-gray-600 text-sm'>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className='text-center text-sm text-gray-500'>
+            Available packages: venue + catering · full service (venue + equipment + catering) · catering only · event catering without décor
+          </p>
+        </div>
+
         {/* Catering Services */}
         <div className='mb-16'>
           <h2 className='font-primary text-[35px] text-center mb-12'>{packagesHeading}</h2>
@@ -112,7 +145,6 @@ const Catering = () => {
 
                 return (
                   <div key={service.id} className='bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow'>
-                    {/* Service Image — clickable */}
                     <Link to={`/catering/${service.id}`}>
                       <div className='h-48 bg-gray-200 overflow-hidden cursor-pointer'>
                         {thumbnail ? (
@@ -142,7 +174,7 @@ const Catering = () => {
                         </div>
                         <div className='text-right'>
                           <div className='text-2xl font-bold text-accent'>R{service.price}</div>
-                          <div className='text-sm text-gray-600'>{service.priceUnit}</div>
+                          <div className='text-sm text-gray-500'>from · per person</div>
                         </div>
                       </div>
 
@@ -176,15 +208,16 @@ const Catering = () => {
                         </div>
                       )}
 
-                      <button
-                        onClick={() => {
-                          setSelectedService(service);
-                          setIsBookingModalOpen(true);
-                        }}
-                        className='block w-full text-center bg-accent text-white py-3 rounded-lg hover:bg-accent/90 transition font-semibold'
-                      >
-                        Book Now
-                      </button>
+                      <div className='flex flex-col gap-2'>
+                        <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+                           className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
+                          Enquire on WhatsApp
+                        </a>
+                        <Link to={`/catering/${service.id}`}
+                           className='block w-full text-center border border-accent text-accent py-2 rounded-lg hover:bg-accent hover:text-white transition font-semibold text-sm'>
+                          View Details
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
@@ -199,27 +232,18 @@ const Catering = () => {
           <p className='text-gray-600 text-lg mb-6 max-w-[600px] mx-auto'>
             {ctaDescription}
           </p>
-          <Link
-            to={ctaBtnLink}
-            className='inline-block bg-accent text-white px-8 py-4 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'
-          >
-            {ctaBtnText}
-          </Link>
+          <div className='flex flex-col sm:flex-row gap-4 justify-center'>
+            <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
+               className='inline-block bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 transition font-semibold text-lg'>
+              WhatsApp Us
+            </a>
+            <a href={EMAIL_URL}
+               className='inline-block bg-accent text-white px-8 py-4 rounded-lg hover:bg-accent/90 transition font-semibold text-lg'>
+              {ctaBtnText}
+            </a>
+          </div>
         </div>
       </div>
-
-      {/* Booking Modal */}
-      {selectedService && (
-        <BookingModal
-          service={selectedService}
-          isOpen={isBookingModalOpen}
-          onClose={() => {
-            setIsBookingModalOpen(false);
-            setSelectedService(null);
-          }}
-          bookingDetails={null}
-        />
-      )}
     </div>
   );
 };
