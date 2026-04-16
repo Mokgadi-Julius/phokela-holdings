@@ -16,6 +16,15 @@ const Accommodation = () => {
   const description = cms?.page_description || '';
   const roomOrder   = cms?.room_order       || null;
 
+  // Policy CMS fields
+  const paymentTitle    = cms?.policy_payment_title    || 'Payment Requirements';
+  const paymentText     = cms?.policy_payment_text     || 'During peak holiday periods — including Easter, long weekends, mid-December to mid-January, and school holidays — full payment is required 30 days prior to arrival.';
+  const cancelTitle     = cms?.policy_cancel_title     || 'Cancellation Fees';
+  const cancelSubtitle  = cms?.policy_cancel_subtitle  || 'Charged as a percentage of the total booking value:';
+  const cancel25        = cms?.policy_cancel_25        || 'Cancelled within 30 days prior to arrival';
+  const cancel50        = cms?.policy_cancel_50        || 'Cancelled 7 to 2 days prior to arrival';
+  const cancel100       = cms?.policy_cancel_100       || 'Cancelled less than 2 days prior to arrival or no-show';
+
   return (
     <div>
       <ScrollToTop />
@@ -63,13 +72,9 @@ const Accommodation = () => {
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
                   </svg>
                 </div>
-                <h3 className='font-semibold text-gray-900 text-[17px]'>Payment Requirements</h3>
+                <h3 className='font-semibold text-gray-900 text-[17px]'>{paymentTitle}</h3>
               </div>
-              <p className='text-gray-600 text-[14px] leading-relaxed'>
-                During <span className='font-semibold text-gray-800'>peak holiday periods</span> — including Easter, long weekends,
-                mid-December to mid-January, and school holidays —{' '}
-                <span className='font-semibold text-gray-800'>full payment is required 30 days prior to arrival.</span>
-              </p>
+              <p className='text-gray-600 text-[14px] leading-relaxed'>{paymentText}</p>
             </div>
 
             {/* Cancellation policy */}
@@ -80,21 +85,21 @@ const Accommodation = () => {
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                   </svg>
                 </div>
-                <h3 className='font-semibold text-gray-900 text-[17px]'>Cancellation Fees</h3>
+                <h3 className='font-semibold text-gray-900 text-[17px]'>{cancelTitle}</h3>
               </div>
-              <p className='text-[13px] text-gray-500 mb-3'>Charged as a percentage of the total booking value:</p>
+              <p className='text-[13px] text-gray-500 mb-3'>{cancelSubtitle}</p>
               <ul className='space-y-3'>
                 <li className='flex items-start gap-3'>
                   <span className='mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-700 text-[11px] font-bold flex-shrink-0'>25%</span>
-                  <span className='text-gray-600 text-[14px]'>Cancelled within <span className='font-semibold text-gray-800'>30 days</span> prior to arrival</span>
+                  <span className='text-gray-600 text-[14px]'>{cancel25}</span>
                 </li>
                 <li className='flex items-start gap-3'>
                   <span className='mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 text-orange-700 text-[11px] font-bold flex-shrink-0'>50%</span>
-                  <span className='text-gray-600 text-[14px]'>Cancelled <span className='font-semibold text-gray-800'>7 to 2 days</span> prior to arrival</span>
+                  <span className='text-gray-600 text-[14px]'>{cancel50}</span>
                 </li>
                 <li className='flex items-start gap-3'>
                   <span className='mt-0.5 inline-flex items-center justify-center w-7 h-6 rounded-full bg-red-100 text-red-700 text-[11px] font-bold flex-shrink-0'>100%</span>
-                  <span className='text-gray-600 text-[14px]'>Cancelled <span className='font-semibold text-gray-800'>less than 2 days</span> prior to arrival or <span className='font-semibold text-gray-800'>no-show</span></span>
+                  <span className='text-gray-600 text-[14px]'>{cancel100}</span>
                 </li>
               </ul>
             </div>

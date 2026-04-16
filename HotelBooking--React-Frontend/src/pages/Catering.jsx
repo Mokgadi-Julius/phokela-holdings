@@ -51,6 +51,21 @@ const Catering = () => {
   const ctaBtnText      = cms?.cta_btn_text      || 'Contact Us for Catering';
   const ctaBtnLink      = cms?.cta_btn_link      || '/contact';
 
+  // Venue policy CMS fields
+  const policyHeading    = cms?.policy_section_heading || 'Venue Options & Pricing';
+  const policyIntro      = cms?.policy_intro            || 'All catering bookings are handled through a personalised inquiry process — not an online checkout. Contact us via WhatsApp or email to discuss your requirements, and we will prepare a custom contract before any deposit is taken.';
+  const venue1Name       = cms?.venue1_name             || 'Meeting Room';
+  const venue1Cap        = cms?.venue1_capacity         || '2 – 30 people';
+  const venue1Price      = cms?.venue1_price            || 'R3,500';
+  const venue1PriceLabel = cms?.venue1_price_label      || 'Venue only (baseline price)';
+  const venue1Desc       = cms?.venue1_description      || 'Catering can be added to this venue. The final contract amount is confirmed based on your chosen menu, headcount, and any additional services selected.';
+  const venue2Name       = cms?.venue2_name             || 'Conference / Event Venue';
+  const venue2Cap        = cms?.venue2_capacity         || '30 – 50 people · Indoor or Outdoor';
+  const venue2Price      = cms?.venue2_price            || 'R5,500';
+  const venue2PriceLabel = cms?.venue2_price_label      || 'Venue only (baseline price)';
+  const venue2Desc       = cms?.venue2_description      || 'Full catering service available for this venue. The final contract amount varies based on your menu, number of guests, and package chosen.';
+  const packagesSummary  = cms?.policy_packages_summary || 'Available packages: venue + catering · full service (venue + equipment + catering) · catering only · event catering without décor';
+
   return (
     <div className='min-h-screen pt-[120px] pb-12'>
       <ScrollToTop />
@@ -93,25 +108,20 @@ const Catering = () => {
 
         {/* Venue Pricing & Booking Policy */}
         <div className='mb-16'>
-          <h2 className='font-primary text-[35px] text-center mb-4'>Venue Options & Pricing</h2>
+          <h2 className='font-primary text-[35px] text-center mb-4'>{policyHeading}</h2>
           <p className='text-center text-gray-600 mb-10 max-w-[700px] mx-auto'>
-            All catering bookings are handled through a personalised inquiry process — not an online
-            checkout. Contact us via WhatsApp or email to discuss your requirements, and we will
-            prepare a custom contract before any deposit is taken.
+            {policyIntro}
           </p>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-8 mb-10'>
-            {/* Meeting Room */}
+            {/* Venue 1 */}
             <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
               <div className='text-4xl mb-3'>🪑</div>
-              <h3 className='font-primary text-[26px] mb-1'>Meeting Room</h3>
-              <p className='text-gray-500 text-sm mb-4'>Capacity: 2 – 30 people</p>
-              <div className='text-3xl font-bold text-accent mb-1'>R3,500</div>
-              <p className='text-sm text-gray-500 mb-6'>Venue only (baseline price)</p>
-              <p className='text-gray-600 text-sm mb-6'>
-                Catering can be added to this venue. The final contract amount is confirmed based on
-                your chosen menu, headcount, and any additional services selected.
-              </p>
+              <h3 className='font-primary text-[26px] mb-1'>{venue1Name}</h3>
+              <p className='text-gray-500 text-sm mb-4'>Capacity: {venue1Cap}</p>
+              <div className='text-3xl font-bold text-accent mb-1'>{venue1Price}</div>
+              <p className='text-sm text-gray-500 mb-6'>{venue1PriceLabel}</p>
+              <p className='text-gray-600 text-sm mb-6'>{venue1Desc}</p>
               <div className='flex flex-col gap-3'>
                 <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
                    className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
@@ -124,17 +134,14 @@ const Catering = () => {
               </div>
             </div>
 
-            {/* Conference / Event Venue */}
+            {/* Venue 2 */}
             <div className='bg-white rounded-lg shadow-lg p-8 border-t-4 border-accent'>
               <div className='text-4xl mb-3'>🍽️</div>
-              <h3 className='font-primary text-[26px] mb-1'>Conference / Event Venue</h3>
-              <p className='text-gray-500 text-sm mb-4'>Capacity: 30 – 50 people · Indoor or Outdoor</p>
-              <div className='text-3xl font-bold text-accent mb-1'>R5,500</div>
-              <p className='text-sm text-gray-500 mb-6'>Venue only (baseline price)</p>
-              <p className='text-gray-600 text-sm mb-6'>
-                Full catering service available for this venue. The final contract amount varies
-                based on your menu, number of guests, and package chosen.
-              </p>
+              <h3 className='font-primary text-[26px] mb-1'>{venue2Name}</h3>
+              <p className='text-gray-500 text-sm mb-4'>Capacity: {venue2Cap}</p>
+              <div className='text-3xl font-bold text-accent mb-1'>{venue2Price}</div>
+              <p className='text-sm text-gray-500 mb-6'>{venue2PriceLabel}</p>
+              <p className='text-gray-600 text-sm mb-6'>{venue2Desc}</p>
               <div className='flex flex-col gap-3'>
                 <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer'
                    className='block w-full text-center bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold'>
@@ -165,9 +172,7 @@ const Catering = () => {
                 </div>
               ))}
             </div>
-            <p className='text-center text-sm text-gray-500 mt-6'>
-              Available packages: venue + catering · full service (venue + equipment + catering) · catering only · event catering without décor
-            </p>
+            <p className='text-center text-sm text-gray-500 mt-6'>{packagesSummary}</p>
           </div>
         </div>
 
