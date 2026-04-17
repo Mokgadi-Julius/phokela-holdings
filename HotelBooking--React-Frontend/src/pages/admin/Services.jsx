@@ -53,6 +53,7 @@ const Services = () => {
       'Food Stations',
       'Dessert Bar',
       'Coffee Station',
+      'Platted Starter',
     ],
     conference: [
       'Projector',
