@@ -25,6 +25,18 @@ const Reports = () => {
   const [occupancyLoading, setOccupancyLoading] = useState(false);
   const cachedBookingsRef = useRef(null); // cached bookings for filter computation
 
+  // Electricity readings state — keyed by room name, persisted to localStorage
+  const [electricityReadings, setElectricityReadings] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('electricity_readings') || '{}'); } catch { return {}; }
+  });
+  const [showElectricityInputs, setShowElectricityInputs] = useState(false);
+
+  const handleElectricityChange = (roomName, value) => {
+    const updated = { ...electricityReadings, [roomName]: value === '' ? '' : Number(value) };
+    setElectricityReadings(updated);
+    localStorage.setItem('electricity_readings', JSON.stringify(updated));
+  };
+
   // Expenditure state
   const [expenditures, setExpenditures] = useState([]);
   const [showExpModal, setShowExpModal] = useState(false);
@@ -577,17 +589,61 @@ const Reports = () => {
             </div>
           )}
 
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredOccupancy || reportData.roomOccupancy} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="booked" fill="#EF4444" name="Booked" />
-              <Bar dataKey="available" fill="#10B981" name="Available" />
-            </BarChart>
-          </ResponsiveContainer>
+          {(() => {
+            const baseData = filteredOccupancy || reportData.roomOccupancy;
+            const chartData = baseData.map(room => ({
+              ...room,
+              electricityUnits: electricityReadings[room.name] || 0,
+            }));
+            return (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="booked" fill="#EF4444" name="Booked" />
+                  <Bar dataKey="available" fill="#10B981" name="Available" />
+                  <Bar dataKey="electricityUnits" fill="#F59E0B" name="Electricity (units)" />
+                </BarChart>
+              </ResponsiveContainer>
+            );
+          })()}
+
+          {/* Electricity readings input */}
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <button
+              onClick={() => setShowElectricityInputs(p => !p)}
+              className="flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800 transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {showElectricityInputs ? 'Hide' : 'Enter'} Electricity Readings
+            </button>
+
+            {showElectricityInputs && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-gray-500 mb-2">Enter units consumed per room for the current period. Values are saved automatically.</p>
+                {(reportData.roomOccupancy || []).map(room => (
+                  <div key={room.name} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-700 w-28 truncate" title={room.name}>{room.name}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={electricityReadings[room.name] ?? ''}
+                      onChange={e => handleElectricityChange(room.name, e.target.value)}
+                      className="w-28 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      placeholder="0 units"
+                    />
+                    <span className="text-xs text-gray-400">kWh</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Service Categories */}
