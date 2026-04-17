@@ -682,27 +682,27 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Room Occupancy */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+      {/* Charts Row 2 - Room Occupancy (More Space) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Room Occupancy - Spans 3 columns */}
+        <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-6">
           {/* Header + view toggle */}
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Room Occupancy</h2>
+              <h2 className="text-xl font-bold text-gray-900">Room Occupancy & Monthly Performance</h2>
               {occupancyView !== 'current' && (
-                <p className="text-sm text-blue-600 mt-0.5">{getOccupancyLabel()}</p>
+                <p className="text-sm text-blue-600 mt-0.5 font-medium">{getOccupancyLabel()}</p>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5 no-print">
+            <div className="flex flex-wrap gap-1.5 no-print bg-gray-50 p-1 rounded-lg">
               {['current', 'hour', 'day', 'week', 'month', 'year'].map(v => (
                 <button
                   key={v}
                   onClick={() => setOccupancyView(v)}
-                  className={`px-3 py-1 text-xs rounded-full font-medium transition ${
+                  className={`px-4 py-1.5 text-xs rounded-md font-bold transition ${
                     occupancyView === v
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-white text-blue-600 shadow-sm border border-blue-100'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                   }`}
                 >
                   {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -713,136 +713,148 @@ const Reports = () => {
 
           {/* Date / time selectors */}
           {occupancyView !== 'current' && (
-            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-sm no-print">
+            <div className="flex flex-wrap items-center gap-4 mb-6 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl text-sm no-print">
               {(occupancyView === 'day' || occupancyView === 'hour') && (
-                <>
-                  <label className="text-gray-600 font-medium">Date</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-blue-900 font-semibold">Select Date:</label>
                   <input
                     type="date"
                     value={occupancyDate}
                     onChange={e => setOccupancyDate(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                   />
-                </>
+                </div>
               )}
               {occupancyView === 'hour' && (
-                <>
-                  <label className="text-gray-600 font-medium">Hour</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-blue-900 font-semibold">Hour:</label>
                   <select
                     value={occupancyHour}
                     onChange={e => setOccupancyHour(Number(e.target.value))}
-                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                   >
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
                     ))}
                   </select>
-                </>
+                </div>
               )}
               {occupancyView === 'week' && (
-                <>
-                  <label className="text-gray-600 font-medium">Week</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-blue-900 font-semibold">Select Week:</label>
                   <input
                     type="week"
                     value={occupancyWeek}
                     onChange={e => setOccupancyWeek(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                   />
-                </>
+                </div>
               )}
               {occupancyView === 'month' && (
-                <>
-                  <label className="text-gray-600 font-medium">Month</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-blue-900 font-semibold">Select Month:</label>
                   <input
                     type="month"
                     value={occupancyMonth}
                     onChange={e => setOccupancyMonth(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                   />
-                </>
+                </div>
               )}
               {occupancyView === 'year' && (
-                <>
-                  <label className="text-gray-600 font-medium">Year</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-blue-900 font-semibold">Select Year:</label>
                   <select
                     value={occupancyYear}
                     onChange={e => setOccupancyYear(Number(e.target.value))}
-                    className="px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
                   >
                     {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
-                </>
+                </div>
               )}
               {occupancyLoading && (
-                <span className="flex items-center gap-1.5 text-blue-600">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <span className="flex items-center gap-2 text-blue-600 animate-pulse font-medium ml-auto">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Loading…
+                  Syncing Data…
                 </span>
               )}
             </div>
           )}
 
-          {(() => {
-            const baseData = filteredOccupancy || reportData.roomOccupancy;
-            const chartData = baseData.map(room => ({
-              ...room,
-              electricityKwh: electricityReadings[room.name] || 0,
-            }));
-            return (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="booked" fill="#EF4444" name="Booked" />
-                  <Bar dataKey="available" fill="#10B981" name="Available" />
-                  <Bar dataKey="electricityKwh" fill="#F59E0B" name={`Monthly kWh (${activeMonthYear})`} />
-                </BarChart>
-              </ResponsiveContainer>
-            );
-          })()}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-8">
+            {(() => {
+              const baseData = filteredOccupancy || reportData.roomOccupancy;
+              const chartData = baseData.map(room => ({
+                ...room,
+                electricityKwh: electricityReadings[room.name] || 0,
+              }));
+              return (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 30, top: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                    <XAxis type="number" stroke="#9ca3af" />
+                    <YAxis dataKey="name" type="category" width={120} stroke="#4b5563" fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      cursor={{ fill: '#f3f4f6' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    <Bar dataKey="booked" fill="#EF4444" name="Booked" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="available" fill="#10B981" name="Available" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="electricityKwh" fill="#F59E0B" name={`kWh (${activeMonthYear})`} radius={[0, 4, 4, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              );
+            })()}
+          </div>
 
           {/* Monthly Statistics Summary */}
           {monthlyStats && (
-            <div className="mt-8 border-t border-gray-100 pt-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Monthly Analytics: {activeMonthYear}
-              </h3>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <div className="p-2 bg-blue-600 rounded-lg text-white">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  Monthly Analytics: {activeMonthYear}
+                </h3>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Electricity Stats Card */}
-                <div className="bg-amber-50 rounded-xl p-5 border border-amber-100 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
+                <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className="text-amber-800 text-sm font-semibold uppercase tracking-wider">Total Electricity</p>
-                      <p className="text-3xl font-bold text-amber-600 mt-1">
-                        {monthlyStats.totalKwh.toFixed(1)} <span className="text-lg font-medium">kWh</span>
+                      <p className="text-amber-600 text-xs font-bold uppercase tracking-widest">Electricity Consumption</p>
+                      <p className="text-4xl font-black text-gray-900 mt-1">
+                        {monthlyStats.totalKwh.toFixed(1)} <span className="text-lg font-medium text-gray-400">kWh</span>
                       </p>
                     </div>
-                    <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="p-3 bg-amber-50 rounded-2xl text-amber-500">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
                   </div>
                   
-                  <div className="space-y-3 mt-4">
-                    <p className="text-xs font-bold text-amber-800 uppercase border-b border-amber-200 pb-1">Room Breakdown</p>
-                    <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-1 mb-6">
+                    <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-2">
+                      <span>Room Name</span>
+                      <span>Usage</span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar space-y-2">
                       {(reportData.rawRooms || []).map(room => (
-                        <div key={room.name} className="flex justify-between items-center py-1.5 border-b border-amber-100 last:border-0">
-                          <span className="text-sm text-gray-700">{room.name}</span>
-                          <span className="text-sm font-bold text-gray-900">{electricityReadings[room.name] || 0} kWh</span>
+                        <div key={room.name} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl hover:bg-amber-50 transition border border-transparent hover:border-amber-100">
+                          <span className="text-sm font-bold text-gray-700">{room.name}</span>
+                          <span className="text-sm font-black text-amber-600 bg-white px-3 py-1 rounded-lg shadow-sm">{electricityReadings[room.name] || 0} kWh</span>
                         </div>
                       ))}
                     </div>
@@ -850,148 +862,178 @@ const Reports = () => {
                   
                   <button
                     onClick={() => setShowElectricityInputs(!showElectricityInputs)}
-                    className="mt-4 w-full py-2 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 transition no-print"
+                    className="w-full py-3 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 transition shadow-lg shadow-amber-200 flex items-center justify-center gap-2 no-print"
                   >
-                    {showElectricityInputs ? 'Close Editor' : `Update ${activeMonthYear} Readings`}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {showElectricityInputs ? 'Finish Editing' : `Update ${activeMonthYear} Units`}
                   </button>
                 </div>
 
                 {/* Booking Stats Card */}
-                <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
+                <div className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className="text-blue-800 text-sm font-semibold uppercase tracking-wider">Rooms Booked</p>
-                      <p className="text-3xl font-bold text-blue-600 mt-1">
-                        {monthlyStats.totalBookings} <span className="text-lg font-medium">Times</span>
+                      <p className="text-blue-600 text-xs font-bold uppercase tracking-widest">Booking Frequency</p>
+                      <p className="text-4xl font-black text-gray-900 mt-1">
+                        {monthlyStats.totalBookings} <span className="text-lg font-medium text-gray-400">Times</span>
                       </p>
                     </div>
-                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
                   </div>
 
-                  <div className="space-y-3 mt-4">
-                    <p className="text-xs font-bold text-blue-800 uppercase border-b border-blue-200 pb-1">Booking Breakdown</p>
-                    <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-1 mb-6">
+                    <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-2">
+                      <span>Room Name</span>
+                      <span>Bookings</span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar space-y-2">
                       {monthlyStats.breakdown.map(room => (
-                        <div key={room.name} className="flex justify-between items-center py-1.5 border-b border-blue-100 last:border-0">
-                          <span className="text-sm text-gray-700">{room.name}</span>
-                          <span className="text-sm font-bold text-gray-900">{room.booked} bookings</span>
+                        <div key={room.name} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100">
+                          <span className="text-sm font-bold text-gray-700">{room.name}</span>
+                          <span className="text-sm font-black text-blue-600 bg-white px-3 py-1 rounded-lg shadow-sm">{room.booked} bookings</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-white bg-opacity-50 rounded-lg">
-                    <p className="text-xs text-blue-800 italic">
-                      * Total number of times each room was booked during <strong>{activeMonthYear}</strong>.
+                  <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <p className="text-xs text-blue-800 italic leading-relaxed">
+                      * Values represent the <strong>total volume</strong> of unique bookings registered for each room during {activeMonthYear}.
                     </p>
                   </div>
                 </div>
               </div>
 
               {showElectricityInputs && (
-                <div className="mt-6 p-6 bg-white border-2 border-amber-200 rounded-xl shadow-lg no-print">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-gray-900">Edit kWh Readings for {activeMonthYear}</h4>
-                    <button onClick={() => setShowElectricityInputs(false)} className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(reportData.rawRooms || []).map(room => (
-                      <div key={room.name} className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-600">{room.name}</label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={electricityReadings[room.name] ?? ''}
-                            onChange={e => handleElectricityChange(room.name, e.target.value)}
-                            className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none text-sm"
-                            placeholder="0.0"
-                          />
-                          <span className="absolute right-3 top-2 text-xs text-gray-400">kWh</span>
-                        </div>
+                <div className="mt-8 p-8 bg-gray-900 rounded-3xl shadow-2xl no-print relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500 opacity-10 rounded-full -mr-16 -mt-16"></div>
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-center mb-8">
+                      <div>
+                        <h4 className="text-xl font-bold text-white">Meter Reading Center</h4>
+                        <p className="text-gray-400 text-sm mt-1">Update kWh consumption for {activeMonthYear}</p>
                       </div>
-                    ))}
+                      <button onClick={() => setShowElectricityInputs(false)} className="p-2 bg-gray-800 text-gray-400 hover:text-white rounded-full transition">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {(reportData.rawRooms || []).map(room => (
+                        <div key={room.name} className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-amber-500 uppercase tracking-wider">{room.name}</label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={electricityReadings[room.name] ?? ''}
+                              onChange={e => handleElectricityChange(room.name, e.target.value)}
+                              className="w-full pl-4 pr-12 py-3 bg-gray-800 border border-gray-700 text-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none transition font-mono"
+                              placeholder="0.0"
+                            />
+                            <span className="absolute right-4 top-3.5 text-xs font-bold text-gray-500 uppercase">kWh</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-8 flex items-center gap-2 text-gray-500 text-xs">
+                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Changes are synchronized automatically to local cache.
+                    </div>
                   </div>
-                  <p className="mt-4 text-xs text-gray-500 italic">Values are saved automatically to your local storage.</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Service Categories */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Services by Category</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={reportData.categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={true}
-                label={({ name, percent, x, y, cx: pcx }) => (
-                  <text
-                    x={x}
-                    y={y}
-                    fill="#374151"
-                    textAnchor={x > pcx ? 'start' : 'end'}
-                    dominantBaseline="central"
-                    fontSize={11}
-                  >
-                    {`${name.length > 9 ? name.slice(0, 8) + '…' : name} ${(percent * 100).toFixed(0)}%`}
-                  </text>
-                )}
-                outerRadius={75}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {reportData.categoryData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Side Charts - Spans 1 column */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Service Categories */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Services</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={reportData.categoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {reportData.categoryData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              {reportData.categoryData.slice(0, 4).map((entry, index) => (
+                <div key={entry.name} className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                  <span className="text-xs text-gray-600 truncate">{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Booking Status */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Booking Status</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={reportData.statusData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                fill="#8884d8"
-                paddingAngle={5}
-                dataKey="value"
-                label={({ name, value }) => `${name}: ${value}`}
-              >
-                {reportData.statusData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={
-                    _entry.name === 'Pending'   ? '#F59E0B' :
-                    _entry.name === 'Confirmed' ? '#10B981' :
-                    _entry.name === 'Completed' ? '#3B82F6' :
-                    _entry.name === 'Cancelled' ? '#EF4444' :
-                    '#6B7280'
-                  } />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          {/* Booking Status */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Status</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={reportData.statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {reportData.statusData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={
+                      _entry.name === 'Pending'   ? '#F59E0B' :
+                      _entry.name === 'Confirmed' ? '#10B981' :
+                      _entry.name === 'Completed' ? '#3B82F6' :
+                      _entry.name === 'Cancelled' ? '#EF4444' :
+                      '#6B7280'
+                    } />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+               {reportData.statusData.map(s => (
+                 <div key={s.name} className="flex items-center gap-1.5">
+                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 
+                      s.name === 'Pending'   ? '#F59E0B' :
+                      s.name === 'Confirmed' ? '#10B981' :
+                      s.name === 'Completed' ? '#3B82F6' :
+                      s.name === 'Cancelled' ? '#EF4444' :
+                      '#6B7280'
+                   }}></div>
+                   <span className="text-[10px] font-bold text-gray-500 uppercase">{s.name}</span>
+                 </div>
+               ))}
+            </div>
+          </div>
         </div>
       </div>
 
