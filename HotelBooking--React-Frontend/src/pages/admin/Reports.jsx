@@ -27,15 +27,40 @@ const Reports = () => {
   const cachedBookingsRef = useRef(null); // cached bookings for filter computation
 
   // Electricity readings state — keyed by room name, persisted to localStorage
-  const [electricityReadings, setElectricityReadings] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('electricity_readings') || '{}'); } catch { return {}; }
-  });
+  // Updated to track monthly kWh units
+  const currentMonthYear = new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' });
+  const [activeMonthYear, setActiveMonthYear] = useState(currentMonthYear);
+  const [electricityReadings, setElectricityReadings] = useState({});
+
+  // Helper to load readings for a specific month
+  const loadReadingsForMonth = (monthYear) => {
+    try {
+      const allReadings = JSON.parse(localStorage.getItem('electricity_readings_monthly') || '{}');
+      setElectricityReadings(allReadings[monthYear] || {});
+      setActiveMonthYear(monthYear);
+    } catch {
+      setElectricityReadings({});
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadReadingsForMonth(currentMonthYear);
+  }, []);
+
   const [showElectricityInputs, setShowElectricityInputs] = useState(false);
 
   const handleElectricityChange = (roomName, value) => {
-    const updated = { ...electricityReadings, [roomName]: value === '' ? '' : Number(value) };
-    setElectricityReadings(updated);
-    localStorage.setItem('electricity_readings', JSON.stringify(updated));
+    const updatedRoomReadings = { ...electricityReadings, [roomName]: value === '' ? '' : Number(value) };
+    setElectricityReadings(updatedRoomReadings);
+
+    try {
+      const allReadings = JSON.parse(localStorage.getItem('electricity_readings_monthly') || '{}');
+      allReadings[activeMonthYear] = updatedRoomReadings;
+      localStorage.setItem('electricity_readings_monthly', JSON.stringify(allReadings));
+    } catch (err) {
+      console.error('Failed to save electricity readings:', err);
+    }
   };
 
   // Expenditure state
@@ -82,13 +107,19 @@ const Reports = () => {
     XLSX.utils.book_append_sheet(wb, wsFinancial, 'Financial Performance');
 
     // 3. Room Occupancy
-    const occupancyData = (filteredOccupancy || reportData.roomOccupancy).map(room => ({
-      Room: room.name,
-      Total: room.total,
-      Booked: room.booked,
-      Available: room.available,
-      'Electricity (units)': electricityReadings[room.name] || 0
-    }));
+    const occupancyData = (filteredOccupancy || reportData.roomOccupancy).map(room => {
+      // Get monthly kWh for this specific room
+      // Use currentMonthYear if view is current, otherwise try to match month from filter
+      let monthlyKwh = electricityReadings[room.name] || 0;
+      
+      return {
+        Room: room.name,
+        Total: room.total,
+        Booked: room.booked,
+        Available: room.available,
+        'Monthly kWh': monthlyKwh
+      };
+    });
     const wsOccupancy = XLSX.utils.json_to_sheet(occupancyData);
     XLSX.utils.book_append_sheet(wb, wsOccupancy, 'Room Occupancy');
 
@@ -246,15 +277,17 @@ const Reports = () => {
   // Re-apply filter whenever the date selectors change (only if a non-current view is active)
   useEffect(() => {
     if (occupancyView !== 'current' && reportData) applyOccupancyFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [occupancyDate, occupancyHour, occupancyWeek, occupancyMonth, occupancyYear]);
 
-  // Clear filtered occupancy when switching back to 'current'
-  useEffect(() => {
-    if (occupancyView === 'current') setFilteredOccupancy(null);
-    else if (reportData) applyOccupancyFilter();
+    // Sync electricity readings with the selected month
+    if (occupancyView === 'month' && occupancyMonth) {
+      const [y, m] = occupancyMonth.split('-');
+      const monthYear = new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      loadReadingsForMonth(monthYear);
+    } else if (occupancyView === 'current') {
+      loadReadingsForMonth(currentMonthYear);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [occupancyView]);
+  }, [occupancyDate, occupancyHour, occupancyWeek, occupancyMonth, occupancyYear, occupancyView]);
 
   // ── End occupancy filter helpers ──────────────────────────────────────────
 
@@ -705,7 +738,7 @@ const Reports = () => {
             const baseData = filteredOccupancy || reportData.roomOccupancy;
             const chartData = baseData.map(room => ({
               ...room,
-              electricityUnits: electricityReadings[room.name] || 0,
+              electricityKwh: electricityReadings[room.name] || 0,
             }));
             return (
               <ResponsiveContainer width="100%" height={300}>
@@ -717,7 +750,7 @@ const Reports = () => {
                   <Legend />
                   <Bar dataKey="booked" fill="#EF4444" name="Booked" />
                   <Bar dataKey="available" fill="#10B981" name="Available" />
-                  <Bar dataKey="electricityUnits" fill="#F59E0B" name="Electricity (units)" />
+                  <Bar dataKey="electricityKwh" fill="#F59E0B" name={`Monthly kWh (${currentMonthYear})`} />
                 </BarChart>
               </ResponsiveContainer>
             );
@@ -732,12 +765,12 @@ const Reports = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {showElectricityInputs ? 'Hide' : 'Enter'} Electricity Readings
+              {showElectricityInputs ? 'Hide' : 'Enter'} {currentMonthYear} kWh Readings
             </button>
 
             {showElectricityInputs && (
               <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-500 mb-2">Enter units consumed per room for the current period. Values are saved automatically.</p>
+                <p className="text-xs text-gray-500 mb-2">Enter kWh units consumed per room for <strong>{currentMonthYear}</strong>. Values are saved automatically.</p>
                 {(reportData.roomOccupancy || []).map(room => (
                   <div key={room.name} className="flex items-center gap-3">
                     <span className="text-sm text-gray-700 w-28 truncate" title={room.name}>{room.name}</span>
@@ -748,7 +781,7 @@ const Reports = () => {
                       value={electricityReadings[room.name] ?? ''}
                       onChange={e => handleElectricityChange(room.name, e.target.value)}
                       className="w-28 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                      placeholder="0 units"
+                      placeholder="0.0"
                     />
                     <span className="text-xs text-gray-400">kWh</span>
                   </div>
