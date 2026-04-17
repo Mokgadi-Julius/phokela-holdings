@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { adminAPI, roomsAPI, servicesAPI, expendituresAPI, bookingsAPI } from '../../services/api';
+import * as XLSX from 'xlsx';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -50,6 +51,75 @@ const Reports = () => {
   });
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  const stats = reportData?.stats || {};
+
+  const exportToExcel = () => {
+    if (!reportData) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // 1. Summary Sheet
+    const summaryData = [
+      ['Metric', 'Value'],
+      ['Total Revenue (This Month)', stats.thisMonthRevenue || 0],
+      ['Total Bookings (All Time)', stats.totalBookings || 0],
+      ['Pending Bookings', stats.pendingBookings || 0],
+      ['Active Services', stats.totalServices || 0],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+    // 2. Financial Performance
+    const financialData = reportData.revenueData.map(item => ({
+      Month: item.month,
+      'Revenue (R)': item.revenue,
+      'Expenditure (R)': item.expenditure,
+      'Profit (R)': item.profit,
+      Bookings: item.bookings
+    }));
+    const wsFinancial = XLSX.utils.json_to_sheet(financialData);
+    XLSX.utils.book_append_sheet(wb, wsFinancial, 'Financial Performance');
+
+    // 3. Room Occupancy
+    const occupancyData = (filteredOccupancy || reportData.roomOccupancy).map(room => ({
+      Room: room.name,
+      Total: room.total,
+      Booked: room.booked,
+      Available: room.available,
+      'Electricity (units)': electricityReadings[room.name] || 0
+    }));
+    const wsOccupancy = XLSX.utils.json_to_sheet(occupancyData);
+    XLSX.utils.book_append_sheet(wb, wsOccupancy, 'Room Occupancy');
+
+    // 4. Expenditures
+    const expData = expenditures.map(exp => ({
+      Date: exp.date,
+      Title: exp.title,
+      Category: exp.category,
+      Amount: parseFloat(exp.amount),
+      Reference: exp.reference || '',
+      Description: exp.description || ''
+    }));
+    const wsExpenditures = XLSX.utils.json_to_sheet(expData);
+    XLSX.utils.book_append_sheet(wb, wsExpenditures, 'Expenditures');
+
+    // 5. Recent Bookings
+    const bookingsData = reportData.recentBookings.map(booking => ({
+      Reference: booking.bookingReference,
+      Guest: `${booking.primaryGuest?.firstName || ''} ${booking.primaryGuest?.lastName || ''}`,
+      Service: booking.serviceSnapshot?.name || booking.service?.name || 'N/A',
+      Amount: booking.pricing?.totalAmount || 0,
+      Status: booking.status,
+      'Check In': booking.bookingDetails?.checkIn || 'N/A',
+      'Check Out': booking.bookingDetails?.checkOut || 'N/A'
+    }));
+    const wsBookings = XLSX.utils.json_to_sheet(bookingsData);
+    XLSX.utils.book_append_sheet(wb, wsBookings, 'Recent Bookings');
+
+    // Export
+    XLSX.writeFile(wb, `Hotel_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   // ── Occupancy filter helpers ──────────────────────────────────────────────
 
@@ -335,7 +405,8 @@ const Reports = () => {
     );
   }
 
-  const stats = reportData?.stats || {};
+  // Moved stats declaration here after loading/error checks but before return
+  // stats is actually already part of reportData, so we use it safely here.
 
   return (
     <div className="space-y-6">
@@ -347,7 +418,7 @@ const Reports = () => {
         </div>
         <div className="flex items-center gap-4">
           {/* Auto Refresh Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer no-print">
             <input
               type="checkbox"
               checked={autoRefresh}
@@ -359,7 +430,7 @@ const Reports = () => {
 
           <button
             onClick={() => setShowExpModal(true)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center no-print"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -370,19 +441,60 @@ const Reports = () => {
           {/* Refresh Button */}
           <button
             onClick={fetchReportData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center no-print"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Refresh
           </button>
+
+          {/* Export to Excel Button */}
+          <button
+            onClick={exportToExcel}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center no-print"
+            title="Download full report as Excel spreadsheet"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export to Excel
+          </button>
+
+          {/* Print Button */}
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition flex items-center no-print"
+            title="Print report or Save as PDF"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print PDF
+          </button>
         </div>
       </div>
 
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          .no-print, button, label, .fixed, .modal { display: none !important; }
+          body { background: white; padding: 20px; }
+          .bg-white { box-shadow: none !important; border: 1px solid #eee; margin-bottom: 20px; }
+          .grid { display: block !important; }
+          .grid > div { margin-bottom: 2rem; break-inside: avoid; }
+          .h-64, .h-[300px], .recharts-responsive-container { height: 400px !important; min-height: 400px !important; }
+          canvas { max-width: 100% !important; height: auto !important; }
+          .text-3xl { font-size: 24pt !important; }
+          .text-xl { font-size: 18pt !important; }
+          .overflow-x-auto, .overflow-y-auto { overflow: visible !important; max-height: none !important; }
+          table { width: 100% !important; border-collapse: collapse; }
+          th, td { border: 1px solid #eee !important; }
+        }
+      `}} />
+
       {/* Error banner (shown when refresh fails but old data is still visible) */}
       {error && reportData && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between no-print">
           <p className="text-red-800 text-sm">{error}</p>
           <button onClick={() => setError(null)} className="text-red-600 hover:text-red-700 text-sm ml-4">Dismiss</button>
         </div>
@@ -397,7 +509,7 @@ const Reports = () => {
               <p className="text-3xl font-bold mt-2">R{(stats.thisMonthRevenue || 0).toLocaleString()}</p>
               <p className="text-blue-100 text-xs mt-2">This Month</p>
             </div>
-            <div className="text-5xl opacity-20">💰</div>
+            <div className="text-5xl opacity-20 no-print">💰</div>
           </div>
         </div>
 
@@ -408,7 +520,7 @@ const Reports = () => {
               <p className="text-3xl font-bold mt-2">{stats.totalBookings || 0}</p>
               <p className="text-green-100 text-xs mt-2">All Time</p>
             </div>
-            <div className="text-5xl opacity-20">📅</div>
+            <div className="text-5xl opacity-20 no-print">📅</div>
           </div>
         </div>
 
@@ -419,7 +531,7 @@ const Reports = () => {
               <p className="text-3xl font-bold mt-2">{stats.pendingBookings || 0}</p>
               <p className="text-yellow-100 text-xs mt-2">Requires Action</p>
             </div>
-            <div className="text-5xl opacity-20">⏳</div>
+            <div className="text-5xl opacity-20 no-print">⏳</div>
           </div>
         </div>
 
@@ -430,7 +542,7 @@ const Reports = () => {
               <p className="text-3xl font-bold mt-2">{stats.totalServices || 0}</p>
               <p className="text-purple-100 text-xs mt-2">Available Now</p>
             </div>
-            <div className="text-5xl opacity-20">🏨</div>
+            <div className="text-5xl opacity-20 no-print">🏨</div>
           </div>
         </div>
       </div>
@@ -496,7 +608,7 @@ const Reports = () => {
                 <p className="text-sm text-blue-600 mt-0.5">{getOccupancyLabel()}</p>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 no-print">
               {['current', 'hour', 'day', 'week', 'month', 'year'].map(v => (
                 <button
                   key={v}
@@ -515,7 +627,7 @@ const Reports = () => {
 
           {/* Date / time selectors */}
           {occupancyView !== 'current' && (
-            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-sm no-print">
               {(occupancyView === 'day' || occupancyView === 'hour') && (
                 <>
                   <label className="text-gray-600 font-medium">Date</label>
@@ -612,7 +724,7 @@ const Reports = () => {
           })()}
 
           {/* Electricity readings input */}
-          <div className="mt-4 border-t border-gray-100 pt-4">
+          <div className="mt-4 border-t border-gray-100 pt-4 no-print">
             <button
               onClick={() => setShowElectricityInputs(p => !p)}
               className="flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800 transition"
@@ -814,7 +926,7 @@ const Reports = () => {
 
       {/* Expenditure Modal */}
       {showExpModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 no-print">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-900">Add New Expenditure</h3>
